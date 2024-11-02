@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Frieve Web Oscillator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #000000; /* Set background to black */
+            color: #FFFFFF; /* Set text color to white */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #FFFFFF; /* Set heading color to white */
+        }
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #1a1a1a; /* Set control group background to dark gray */
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(255,255,255,0.1); /* White box shadow for depth */
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #FFFFFF; /* Set label color to white */
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+        }
+        .controls input[type="range"] {
+            margin-right: 15px;
+            flex: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #555555; /* Slider track color */
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+        }
+        .controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFFFFF; /* Slider thumb color */
+            cursor: pointer;
+            border: none;
+        }
+        .controls input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFFFFF; /* Slider thumb color */
+            cursor: pointer;
+            border: none;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .radio-group label {
+            font-weight: normal;
+            cursor: pointer;
+            color: #FFFFFF; /* Radio button label color */
+        }
+        .toggle-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            background-color: #28a745; /* Play button background color (green) */
+            color: #ffffff; /* Play button text color */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .toggle-button.paused {
+            background-color: #dc3545; /* Pause button background color (red) */
+        }
+        .toggle-button:focus {
+            outline: none;
+        }
+        /* Disabled slider styling */
+        .controls input[type="range"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #333333; /* Disabled slider track color */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Frieve Web Oscillator</h1>
+
+    <!-- Frequency Control -->
+    <div class="control-group">
+        <label for="frequency">Frequency: <span id="freqValue">880 Hz</span></label>
+        <div class="controls">
+            <input type="range" id="frequency" min="0" max="100000" value="44645" step="25">
+        </div>
+    </div>
+
+    <!-- Volume Control -->
+    <div class="control-group">
+        <label for="volume">Volume: <span id="volValue">0</span> dB</label>
+        <div class="controls">
+            <input type="range" id="volume" min="-96" max="0" value="-12">
+        </div>
+    </div>
+
+    <!-- Panning Control -->
+    <div class="control-group">
+        <label>Panning:</label>
+        <div class="radio-group">
+            <label><input type="radio" name="panning" value="center" checked> Center</label>
+            <label><input type="radio" name="panning" value="left"> Left</label>
+            <label><input type="radio" name="panning" value="right"> Right</label>
+        </div>
+    </div>
+
+    <!-- Waveform Selection -->
+    <div class="control-group">
+        <label>Waveform:</label>
+        <div class="radio-group">
+            <label><input type="radio" name="waveform" value="sine" checked> Sine</label>
+            <label><input type="radio" name="waveform" value="sawtooth"> Sawtooth</label>
+            <label><input type="radio" name="waveform" value="triangle"> Triangle</label>
+            <label><input type="radio" name="waveform" value="square"> Square</label>
+            <label><input type="radio" name="waveform" value="white"> White Noise</label>
+            <label><input type="radio" name="waveform" value="pink"> Pink Noise</label>
+        </div>
+    </div>
+
+    <!-- Play/Pause Toggle Button -->
+    <button id="playPause" class="toggle-button">Play</button>
+
+    <script>
+        // Initialize Audio Context
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        let oscillator = null;
+        let gainNode = null;
+        let panner = null;
+        let noiseSource = null;
+        let isPlaying = false;
+
+        // Get Elements
+        const frequencySlider = document.getElementById('frequency');
+        const freqValue = document.getElementById('freqValue');
+        const volumeSlider = document.getElementById('volume');
+        const volValue = document.getElementById('volValue');
+        const panningRadios = document.getElementsByName('panning');
+        const waveformRadios = document.getElementsByName('waveform');
+        const playPauseButton = document.getElementById('playPause');
+
+        // Frequency Mapping Constants
+        const minFreq = 20;
+        const maxFreq = 96000;
+
+        // Display Initial Values
+        const initialFreq = getFrequency(frequencySlider.value);
+        freqValue.textContent = formatFrequency(initialFreq);
+        console.log(`Initial Slider Value: ${frequencySlider.value}, Frequency: ${initialFreq} Hz`);
+        volValue.textContent = volumeSlider.value;
+
+        // Function to Map Slider Value to Logarithmic Frequency
+        function getFrequency(sliderValue) {
+            const scale = Math.log(maxFreq / minFreq);
+            const freq = minFreq * Math.exp((sliderValue / frequencySlider.max) * scale);
+            return Math.round(freq); // Round to nearest integer
+        }
+
+        // Function to Format Frequency Display with Integer Values
+        function formatFrequency(freq) {
+            if (freq >= 1000) {
+                return (freq / 1000).toFixed(2) + ' kHz';
+            }
+            return freq + ' Hz';
+        }
+
+        // Frequency Slider Event Listener
+        frequencySlider.addEventListener('input', () => {
+            const freq = getFrequency(frequencySlider.value);
+            freqValue.textContent = formatFrequency(freq);
+            console.log(`Slider Value: ${frequencySlider.value}, Frequency: ${freq} Hz`);
+            if (oscillator) {
+                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            }
+        });
+
+        // Volume Slider Event Listener
+        volumeSlider.addEventListener('input', () => {
+            volValue.textContent = volumeSlider.value;
+            if (gainNode) {
+                // Convert dB to Linear Gain
+                const linearGain = dbToLinear(volumeSlider.value);
+                gainNode.gain.setValueAtTime(linearGain, audioCtx.currentTime);
+            }
+        });
+
+        // Panning Setup
+        function updatePanning() {
+            if (panner) {
+                const selected = Array.from(panningRadios).find(radio => radio.checked).value;
+                switch (selected) {
+                    case 'left':
+                        panner.pan.setValueAtTime(-1, audioCtx.currentTime);
+                        break;
+                    case 'right':
+                        panner.pan.setValueAtTime(1, audioCtx.currentTime);
+                        break;
+                    default:
+                        panner.pan.setValueAtTime(0, audioCtx.currentTime);
+                }
+            }
+        }
+
+        // Waveform Selection
+        function getSelectedWaveform() {
+            return Array.from(waveformRadios).find(radio => radio.checked).value;
+        }
+
+        // Convert dB to Linear Gain
+        function dbToLinear(db) {
+            return Math.pow(10, db / 20);
+        }
+
+        // Event Listeners for Panning Radio Buttons
+        panningRadios.forEach(radio => {
+            radio.addEventListener('change', updatePanning);
+        });
+
+        // Event Listeners for Waveform Radio Buttons
+        waveformRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const selectedWaveform = getSelectedWaveform();
+                if (isPlaying) {
+                    stopAllSources();
+                    if (selectedWaveform === 'white' || selectedWaveform === 'pink') {
+                        startNoise(selectedWaveform);
+                        disableFrequencySlider(true);
+                    } else {
+                        startOscillator(selectedWaveform);
+                        disableFrequencySlider(false);
+                    }
+                }
+            });
+        });
+
+        // Play/Pause Button Event Listener
+        playPauseButton.addEventListener('click', () => {
+            toggleAudio();
+        });
+
+        // Toggle Audio Playback Function
+        function toggleAudio() {
+            if (!isPlaying) {
+                startAudio();
+            } else {
+                stopAudio();
+            }
+        }
+
+        // Start Audio Function
+        function startAudio() {
+            gainNode = audioCtx.createGain();
+            panner = new StereoPannerNode(audioCtx, { pan: 0 });
+
+            // Convert dB to Linear Gain
+            const linearGain = dbToLinear(volumeSlider.value);
+            gainNode.gain.setValueAtTime(linearGain, audioCtx.currentTime);
+
+            gainNode.connect(panner);
+            panner.connect(audioCtx.destination);
+
+            updatePanning();
+
+            const selectedWaveform = getSelectedWaveform();
+            if (selectedWaveform === 'white' || selectedWaveform === 'pink') {
+                startNoise(selectedWaveform);
+                disableFrequencySlider(true);
+            } else {
+                startOscillator(selectedWaveform);
+                disableFrequencySlider(false);
+            }
+
+            isPlaying = true;
+            playPauseButton.textContent = 'Pause';
+            playPauseButton.classList.add('paused');
+        }
+
+        // Start Oscillator Function
+        function startOscillator(waveform) {
+            oscillator = audioCtx.createOscillator();
+            oscillator.type = waveform;
+            oscillator.frequency.setValueAtTime(getFrequency(frequencySlider.value), audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            oscillator.start();
+        }
+
+        // Stop Audio Function
+        function stopAudio() {
+            stopAllSources();
+            if (gainNode) {
+                gainNode.disconnect();
+                gainNode = null;
+            }
+            if (panner) {
+                panner.disconnect();
+                panner = null;
+            }
+            isPlaying = false;
+            playPauseButton.textContent = 'Play';
+            playPauseButton.classList.remove('paused');
+        }
+
+        // Start Noise Function
+        function startNoise(type) {
+            // Ensure no other noise source is active
+            stopNoise();
+
+            const bufferSize = audioCtx.sampleRate * 2; // 2 seconds buffer
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            if (type === 'white') {
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            } else if (type === 'pink') {
+                // Improved Pink Noise Generator using Voss-McCartney Algorithm
+                const numRows = 16;
+                const rows = new Array(numRows).fill(0).map(() => Math.random());
+                let runningSum = rows.reduce((a, b) => a + b, 0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    const row = Math.floor(Math.random() * numRows);
+                    runningSum -= rows[row];
+                    rows[row] = Math.random();
+                    runningSum += rows[row];
+                    output[i] = runningSum / numRows; // Removed Math.round to prevent clipping
+                }
+            }
+
+            // Normalize the pink noise to prevent clipping
+            normalizeBuffer(output);
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer;
+            noiseSource.loop = true;
+            noiseSource.connect(gainNode);
+            noiseSource.start();
+        }
+
+        // Normalize Buffer to prevent clipping
+        function normalizeBuffer(buffer) {
+            let max = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                if (Math.abs(buffer[i]) > max) {
+                    max = Math.abs(buffer[i]);
+                }
+            }
+            if (max > 0) {
+                for (let i = 0; i < buffer.length; i++) {
+                    buffer[i] /= max;
+                }
+            }
+        }
+
+        // Stop Noise Function
+        function stopNoise() {
+            if (noiseSource) {
+                noiseSource.stop();
+                noiseSource.disconnect();
+                noiseSource = null;
+            }
+        }
+
+        // Stop Oscillator Function
+        function stopOscillator() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+                oscillator = null;
+            }
+        }
+
+        // Stop All Active Sources Function
+        function stopAllSources() {
+            stopOscillator();
+            stopNoise();
+        }
+
+        // Disable or Enable Frequency Slider
+        function disableFrequencySlider(disable) {
+            frequencySlider.disabled = disable;
+            frequencySlider.parentElement.style.opacity = disable ? '0.5' : '1';
+        }
+
+        // Handle SPACE Key for Play/Pause
+        window.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); // Prevent default spacebar scrolling
+                toggleAudio();
+            }
+        });
+
+        // Cleanup Audio on Page Unload
+        window.addEventListener('beforeunload', () => {
+            stopAudio();
+        });
+
+        // Initial Setup: Ensure frequency slider is enabled
+        disableFrequencySlider(false);
+    </script>
+
+</body>
+</html>
