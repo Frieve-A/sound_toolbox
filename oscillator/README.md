@@ -1,7 +1,6 @@
 # Frieve Web Oscillator
 
-An oscillator app that plays simple waveforms.
-
+An oscillator app that plays simple waveforms.  [> Open App](https://frieve-a.github.io/sound_toolbox/oscillator/oscillator.html)
 ![Screenshot](oscillator.png)
 
 | Control Item | Description                         |
@@ -22,7 +21,7 @@ An oscillator app that plays simple waveforms.
 
 ---
 
-シンプルな波形を再生するオシレーターアプリ
+シンプルな波形を再生するオシレーターアプリ [> アプリを開く](https://frieve-a.github.io/sound_toolbox/oscillator/oscillator.html)
 
 ![Screenshot](oscillator.png)
 
