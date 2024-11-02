@@ -19,6 +19,8 @@ An oscillator app that plays simple waveforms.  [> Open App](https://frieve-a.gi
 - Checking the minimum audible volume for your ears
 - Checking distortion at different frequencies of the speaker
 - Checking resonance and reverberation at different frequencies in the playback environment
+- Checking standing waves in the room
+- Checking crosstalk in earphones and headphones
 
 ---
 
@@ -41,3 +43,5 @@ An oscillator app that plays simple waveforms.  [> Open App](https://frieve-a.gi
 - 耳に聞こえる最小音量の確認
 - スピーカーの周波数ごとの歪みの確認
 - 再生環境における周波数ごとの共鳴共振の発生の確認
+- 部屋の定在波の確認
+- イヤホン・ヘッドホンのクロストークの確認
