@@ -5,7 +5,7 @@
 A tool related to sound that runs on a web browser.
 
 ---
-[Frieve Web Oscillator](osscilator/README.md)
+[Frieve Web Oscillator](oscillator/README.md)
 
 An oscillator app that plays simple waveforms.
 
@@ -17,7 +17,7 @@ An oscillator app that plays simple waveforms.
 
 ---
 
-[Frieve Web Oscillator](osscilator/README.md)
+[Frieve Web Oscillator](oscillator/README.md)
 
 シンプルな波形を再生するオシレーターアプリ
 
