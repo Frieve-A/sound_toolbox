@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Frieve Sound ABX Tester</title>
+  <link rel="manifest" href="manifest_ja.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #000;
+      color: #fff;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      background-color: #2c2c2c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      background-color: #2c2c2c;
+      outline: none;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 5px;
+      background: #555;
+      outline: none;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+      margin-top: 5px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      border: none;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      border: none;
+    }
+    .error {
+      color: #ff4d4d;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .hidden {
+      display: none;
+    }
+    .test-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .test-buttons button {
+      cursor: pointer;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      background-color: #28a745;
+      color: #fff;
+      transition: background-color 0.3s ease;
+      flex: 1 1 auto;
+      min-width: 120px;
+      text-align: center;
+    }
+    .test-buttons button:hover {
+      background-color: #218838;
+    }
+    .listening-indicator {
+      text-align: center;
+      min-height: 1.5em;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    #testResultArea {
+      margin-top: 40px;
+      background-color: #1a1a1a;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(255,255,255,0.1);
+      text-align: center;
+    }
+    #testResultTitle {
+      margin-bottom: 20px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #007bff;
+    }
+    #testResultAnswers,
+    #testResultTime,
+    #testResultPvalue {
+      margin-top: 10px;
+    }
+    #testResultConclusion {
+      margin-top: 10px;
+      color: #007bff;
+    }
+    #shareResultsBtn {
+      cursor: pointer;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      margin-top: 20px;
+      background-color: #dc3545;
+      color: #fff;
+      transition: background-color 0.3s ease;
+      min-width: 120px;
+      text-align: center;
+    }
+    #shareResultsBtn:hover {
+      background-color: #c82333;
+    }
+    .progress-container {
+      width: 100%;
+      background-color: #444;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 8px;
+      height: 10px;
+    }
+    .progress-bar {
+      height: 10px;
+      background-color: #28a745;
+      width: 0;
+      transition: width 0.4s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Frieve Sound ABX Tester</h1>
+
+  <div id="config-screen">
+    <div id="testResultArea" class="hidden">
+      <h2 id="testResultTitle"></h2>
+      <div id="testResultAnswers"></div>
+      <div id="testResultTime"></div>
+      <div id="testResultPvalue"></div>
+      <div id="testResultConclusion"></div>
+      <button id="shareResultsBtn">Share your results</button>
+      <p id="shareExplanation" style="margin-top:1rem;">
+        By clicking "Share your results", the link to this page will be copied to your clipboard.
+      </p>
+    </div>
+
+    <label for="userName">Your Name:</label>
+    <!-- Always blank on page load, or after URI restore, or config changes -->
+    <input id="userName" type="text" placeholder="Anonymous" />
+
+    <label for="uriHigh">High-quality audio URI:</label>
+    <input id="uriHigh" type="text" placeholder="e.g. https://example.com/high.mp3" />
+
+    <label for="uriLow">Low-quality audio URI:</label>
+    <input id="uriLow" type="text" placeholder="e.g. https://example.com/low.mp3" />
+
+    <label for="testCountInput">Number of tests:</label>
+    <input id="testCountInput" type="number" min="1" value="20">
+    <input id="testCountRange" type="range" min="5" max="50" value="20">
+
+    <div class="test-buttons">
+      <button id="startABPrefBtn">Start A/B Preference Test</button>
+      <button id="startABXBtn">Start ABX Test</button>
+    </div>
+
+    <div id="configError" class="error hidden"></div>
+
+    <ul style="margin-top: 2rem; line-height: 1.6;">
+      <li>Welcome! This tool helps you compare two audio files in A/B or ABX tests.</li>
+      <li>You can listen multiple times and see if you can discern any difference.</li>
+      <li>A/B Preference Test: choose which audio sounds better overall.</li>
+      <li>ABX Test: try to identify which audio sample matches X.</li>
+      <li>Increasing the number of tests can provide more accurate results, but it also takes more time.</li>
+      <li>Cheating is easy, but it's pointless and uncool, right?</li>
+      <li>You can copy the URL to share these settings so others can try the same test.</li>
+    </ul>
+  </div>
+
+  <div id="abpref-screen" class="hidden">
+    <div class="test-buttons">
+      <button id="abprefListA">Play A</button>
+      <button id="abprefListB">Play B</button>
+    </div>
+    <div class="listening-indicator" id="abprefCurrentlyListening"></div>
+    <p>Which one has better sound quality?</p>
+    <div class="test-buttons">
+      <button id="abprefVoteA">Vote for A</button>
+      <button id="abprefVoteB">Vote for B</button>
+    </div>
+    <h2 id="abprefProgress"></h2>
+    <div class="progress-container">
+      <div class="progress-bar" id="abprefProgressBar"></div>
+    </div>
+    <ul style="margin-top: 2rem; line-height: 1.6;">
+      <li>You can listen to each audio sample as many times as you like.</li>
+      <li>Click "Play A" or "Play B" to play or stop playback.</li>
+      <li>When you've decided which sounds better, click "Vote"!</li>
+    </ul>
+  </div>
+
+  <div id="abx-screen" class="hidden">
+    <div class="test-buttons">
+      <button id="abxListA">Play A</button>
+      <button id="abxListB">Play B</button>
+      <button id="abxListX">Play X</button>
+    </div>
+    <div class="listening-indicator" id="abxCurrentlyListening"></div>
+    <p>Which of A and B is the same as X?</p>
+    <div class="test-buttons">
+      <button id="abxVoteA">X matches A</button>
+      <button id="abxVoteB">X matches B</button>
+    </div>
+    <h2 id="abxProgress"></h2>
+    <div class="progress-container">
+      <div class="progress-bar" id="abxProgressBar"></div>
+    </div>
+    <ul style="margin-top: 2rem; line-height: 1.6%;">
+      <li>You can listen to each audio sample as many times as you like.</li>
+      <li>Click the same button again to stop playback.</li>
+      <li>When you know which one matches X, click the corresponding vote button!</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// Helper: encode/decode
+
+function toBase64(str) {
+  return btoa(
+    encodeURIComponent(str).replace(
+      /%([0-9A-F]{2})/g,
+      (m, p) => String.fromCharCode(parseInt(p, 16))
+    )
+  );
+}
+
+function fromBase64(str) {
+  return decodeURIComponent(
+    Array.prototype.map.call(atob(str), c =>
+      "%" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    ).join("")
+  );
+}
+
+// Audio
+let audioPlayer = new Audio();
+let currentlyPlayingButtonId = null;
+
+// Local variable for name typed in the config
+let localName = "";
+
+// Only store name in context after finishing the test
+let context = {
+  name: "", // remains empty until finishTest
+  uriHigh: "",
+  uriLow: "",
+  testCount: 20,
+  testType: "",
+  correctCount: 0,
+  totalCount: 0,
+  startTime: 0,
+  endTime: 0,
+  timeSpent: 0,
+  restoredFromURI: false
+};
+
+function stopAudio() {
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0;
+  currentlyPlayingButtonId = null;
+}
+
+function updateProgressBar(barId, current, total) {
+  const percent = (current / total) * 100;
+  const bar = document.getElementById(barId);
+  if (bar) bar.style.width = percent + "%";
+}
+
+function showScreen(id) {
+  const screens = ["config-screen", "abpref-screen", "abx-screen"];
+  for (let s of screens) {
+    document.getElementById(s).classList.add("hidden");
+  }
+  document.getElementById(id).classList.remove("hidden");
+}
+
+// Config references
+const userNameInput = document.getElementById("userName");
+const uriHighInput = document.getElementById("uriHigh");
+const uriLowInput = document.getElementById("uriLow");
+const testCountInput = document.getElementById("testCountInput");
+const testCountRange = document.getElementById("testCountRange");
+const configError = document.getElementById("configError");
+const testResultArea = document.getElementById("testResultArea");
+
+userNameInput.addEventListener("input", () => {
+  localName = userNameInput.value; // store typed name locally only
+  // Do not put name into context => context.name = "";
+  updateURI(); // updates URI without name
+  if (!testResultArea.classList.contains("hidden")) {
+    testResultArea.classList.add("hidden");
+  }
+});
+
+uriHighInput.addEventListener("input", handleConfigChange);
+uriLowInput.addEventListener("input", handleConfigChange);
+
+testCountInput.addEventListener("input", () => {
+  testCountRange.value = testCountInput.value;
+  handleConfigChange();
+});
+testCountRange.addEventListener("input", () => {
+  testCountInput.value = testCountRange.value;
+  handleConfigChange();
+});
+
+function handleConfigChange() {
+  // localName does not go in context yet
+  context.uriHigh = uriHighInput.value.trim();
+  context.uriLow = uriLowInput.value.trim();
+  context.testCount = parseInt(testCountInput.value, 10) || 1;
+
+  updateURI();
+  if (!testResultArea.classList.contains("hidden")) {
+    testResultArea.classList.add("hidden");
+  }
+}
+
+document.getElementById("startABPrefBtn").addEventListener("click", () => {
+  startTest("ABPREF");
+});
+document.getElementById("startABXBtn").addEventListener("click", () => {
+  startTest("ABX");
+});
+
+function startTest(type) {
+  const h = uriHighInput.value.trim();
+  const l = uriLowInput.value.trim();
+  const tc = parseInt(testCountInput.value, 10);
+
+  configError.classList.add("hidden");
+  configError.textContent = "";
+
+  if (!h || !l || isNaN(tc) || tc < 1) {
+    configError.textContent = "Invalid configuration. Please check your inputs.";
+    configError.classList.remove("hidden");
+    return;
+  }
+
+  // name is not stored in context yet. localName may have changed.
+  context.name = "";
+  context.uriHigh = h;
+  context.uriLow = l;
+  context.testCount = tc;
+  context.testType = type;
+  context.correctCount = 0;
+  context.totalCount = 0;
+  context.startTime = Date.now();
+  context.endTime = 0;
+  context.timeSpent = 0;
+  context.restoredFromURI = false;
+
+  updateURI();
+
+  if (type === "ABPREF") {
+    showScreen("abpref-screen");
+    updateABPrefUI();
+  } else {
+    showScreen("abx-screen");
+    updateABXUI();
+  }
+}
+
+// A/B Preference
+let abprefCurrentHigherIsA = false;
+const abprefListA = document.getElementById("abprefListA");
+const abprefListB = document.getElementById("abprefListB");
+const abprefVoteA = document.getElementById("abprefVoteA");
+const abprefVoteB = document.getElementById("abprefVoteB");
+const abprefCurrentlyListening = document.getElementById("abprefCurrentlyListening");
+
+function updateABPrefUI() {
+  if (context.totalCount >= context.testCount) {
+    finishTest();
+    return;
+  }
+  const current = context.totalCount + 1;
+  document.getElementById("abprefProgress").textContent =
+    `Test ${current} / ${context.testCount}`;
+  updateProgressBar("abprefProgressBar", context.totalCount, context.testCount);
+  abprefCurrentlyListening.textContent = "";
+  currentlyPlayingButtonId = null;
+  abprefCurrentHigherIsA = Math.random() < 0.5;
+}
+
+abprefListA.addEventListener("click", () => {
+  handleABPrefPlayStop("A");
+});
+abprefListB.addEventListener("click", () => {
+  handleABPrefPlayStop("B");
+});
+
+function handleABPrefPlayStop(btn) {
+  if (currentlyPlayingButtonId === btn) {
+    stopAudio();
+    abprefCurrentlyListening.textContent = "";
+    currentlyPlayingButtonId = null;
+  } else {
+    stopAudio();
+    if (btn === "A") {
+      audioPlayer.src = abprefCurrentHigherIsA ? context.uriHigh : context.uriLow;
+      abprefCurrentlyListening.textContent = "You are currently listening to A";
+    } else {
+      audioPlayer.src = abprefCurrentHigherIsA ? context.uriLow : context.uriHigh;
+      abprefCurrentlyListening.textContent = "You are currently listening to B";
+    }
+    audioPlayer.play();
+    currentlyPlayingButtonId = btn;
+  }
+}
+
+abprefVoteA.addEventListener("click", () => {
+  const correct = abprefCurrentHigherIsA;
+  context.correctCount += correct ? 1 : 0;
+  context.totalCount++;
+  stopAudio();
+  updateABPrefUI();
+});
+abprefVoteB.addEventListener("click", () => {
+  const correct = !abprefCurrentHigherIsA;
+  context.correctCount += correct ? 1 : 0;
+  context.totalCount++;
+  stopAudio();
+  updateABPrefUI();
+});
+
+// ABX
+let abxAIsHigh = false;
+let abxXisA = false;
+
+const abxListA = document.getElementById("abxListA");
+const abxListB = document.getElementById("abxListB");
+const abxListX = document.getElementById("abxListX");
+const abxVoteA = document.getElementById("abxVoteA");
+const abxVoteB = document.getElementById("abxVoteB");
+const abxCurrentlyListening = document.getElementById("abxCurrentlyListening");
+
+function updateABXUI() {
+  if (context.totalCount >= context.testCount) {
+    finishTest();
+    return;
+  }
+  const current = context.totalCount + 1;
+  document.getElementById("abxProgress").textContent =
+    `Test ${current} / ${context.testCount}`;
+  updateProgressBar("abxProgressBar", context.totalCount, context.testCount);
+  abxCurrentlyListening.textContent = "";
+  currentlyPlayingButtonId = null;
+  abxAIsHigh = Math.random() < 0.5;
+  abxXisA = Math.random() < 0.5;
+}
+
+abxListA.addEventListener("click", () => {
+  handleABXPlayStop("A");
+});
+abxListB.addEventListener("click", () => {
+  handleABXPlayStop("B");
+});
+abxListX.addEventListener("click", () => {
+  handleABXPlayStop("X");
+});
+
+abxVoteA.addEventListener("click", () => {
+  const correct = abxXisA;
+  context.correctCount += correct ? 1 : 0;
+  context.totalCount++;
+  stopAudio();
+  updateABXUI();
+});
+abxVoteB.addEventListener("click", () => {
+  const correct = !abxXisA;
+  context.correctCount += correct ? 1 : 0;
+  context.totalCount++;
+  stopAudio();
+  updateABXUI();
+});
+
+function handleABXPlayStop(btn) {
+  if (currentlyPlayingButtonId === btn) {
+    stopAudio();
+    abxCurrentlyListening.textContent = "";
+    currentlyPlayingButtonId = null;
+  } else {
+    stopAudio();
+    if (btn === "A") {
+      audioPlayer.src = abxAIsHigh ? context.uriHigh : context.uriLow;
+      abxCurrentlyListening.textContent = "You are currently listening to A";
+    } else if (btn === "B") {
+      audioPlayer.src = abxAIsHigh ? context.uriLow : context.uriHigh;
+      abxCurrentlyListening.textContent = "You are currently listening to B";
+    } else {
+      if (abxXisA) {
+        audioPlayer.src = abxAIsHigh ? context.uriHigh : context.uriLow;
+      } else {
+        audioPlayer.src = abxAIsHigh ? context.uriLow : context.uriHigh;
+      }
+      abxCurrentlyListening.textContent = "You are currently listening to X";
+    }
+    audioPlayer.play();
+    currentlyPlayingButtonId = btn;
+  }
+}
+
+function finishTest() {
+  context.endTime = Date.now();
+  context.timeSpent = context.endTime - context.startTime;
+  stopAudio();
+
+  // Now we copy localName into context.name for the final results + URI
+  context.name = localName || "Anonymous";
+
+  showScreen("config-screen");
+  displayResult();
+}
+
+function displayResult() {
+  const testResultArea = document.getElementById("testResultArea");
+  testResultArea.classList.remove("hidden");
+
+  const title = document.getElementById("testResultTitle");
+  const ans = document.getElementById("testResultAnswers");
+  const ttime = document.getElementById("testResultTime");
+  const pv = document.getElementById("testResultPvalue");
+  const conc = document.getElementById("testResultConclusion");
+  const shareBtn = document.getElementById("shareResultsBtn");
+  const shareExp = document.getElementById("shareExplanation");
+
+  const percent = context.totalCount === 0
+    ? 0
+    : ((context.correctCount / context.totalCount) * 100).toFixed(2);
+
+  if (context.testType === "ABPREF") {
+    title.textContent = `${context.name} scored ${percent}% on A/B Preference Test!`;
+  } else {
+    title.textContent = `${context.name} scored ${percent}% on ABX Test!`;
+  }
+
+  ans.textContent = `Correct answers: ${context.correctCount} / ${context.totalCount}`;
+
+  const ms = context.timeSpent;
+  const s = Math.floor(ms / 1000) % 60;
+  const m = Math.floor(ms / 1000 / 60);
+  ttime.textContent = `Total time to complete the test: ${m}:${s.toString().padStart(2, "0")}`;
+
+  const pVal = computeBinomialPvalue(context.correctCount, context.totalCount);
+  if (pVal < 0.05) {
+    pv.textContent = `p-value = ${pVal.toFixed(4)} (p < 0.05) → Significant difference`;
+    conc.textContent = `We can say that ${context.name} was able to discern the difference.`;
+  } else {
+    pv.textContent = `p-value = ${pVal.toFixed(4)} (p > 0.05) → No significant difference`;
+    conc.textContent = `We cannot say that ${context.name} was able to discern the difference.`;
+  }
+
+  updateURI(); // Now the URI includes name
+
+  if (context.restoredFromURI) {
+    shareBtn.classList.add("hidden");
+    shareExp.classList.add("hidden");
+  } else {
+    shareBtn.classList.remove("hidden");
+    shareExp.classList.remove("hidden");
+  }
+}
+
+// Binomial stats
+function computeBinomialPvalue(k, n) {
+  if (n === 0) return 1;
+  let p = 0;
+  for (let i = k; i <= n; i++) {
+    p += binomialCoeff(n, i) * Math.pow(0.5, n);
+  }
+  return p;
+}
+
+let factorialCache = {};
+function factorial(x) {
+  if (factorialCache[x]) return factorialCache[x];
+  if (x < 2) {
+    factorialCache[x] = 1;
+    return 1;
+  }
+  let r = 1;
+  for (let i = 2; i <= x; i++) {
+    r *= i;
+  }
+  factorialCache[x] = r;
+  return r;
+}
+
+function binomialCoeff(n, k) {
+  return factorial(n) / (factorial(k) * factorial(n - k));
+}
+
+function updateURI() {
+  // Name is not in context unless test is finished
+  const data = {
+    n: context.name,
+    uH: context.uriHigh,
+    uL: context.uriLow,
+    tT: context.testType,
+    cC: context.correctCount,
+    tC: context.totalCount,
+    tc: context.testCount,
+    ts: context.timeSpent
+  };
+  const json = JSON.stringify(data);
+  let b64 = toBase64(json);
+  b64 = b64.replaceAll("=", "-").replaceAll("/", "_").replaceAll("+", ".");
+  const base = window.location.origin + window.location.pathname;
+  const newUrl = `${base}?data=${b64}`;
+  window.history.replaceState({}, "", newUrl);
+}
+
+// Restore from URI
+(function initFromURI() {
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get("data");
+  if (!encoded) return;
+
+  try {
+    const replaced = encoded
+      .replaceAll("-", "=")
+      .replaceAll("_", "/")
+      .replaceAll(".", "+");
+    const decodedStr = fromBase64(replaced);
+    const obj = JSON.parse(decodedStr);
+
+    // We do NOT fill userNameInput => always blank
+    // If test is completed, we can show the name in results
+    // If partial test, we ignore the stored name
+    context.name = obj.n || "";
+    context.uriHigh = obj.uH || "";
+    context.uriLow = obj.uL || "";
+    context.testType = obj.tT || "";
+    context.correctCount = obj.cC || 0;
+    context.totalCount = obj.tC || 0;
+    context.testCount = obj.tc || 20;
+    context.timeSpent = obj.ts || 0;
+    context.restoredFromURI = true;
+
+    uriHighInput.value = context.uriHigh;
+    uriLowInput.value = context.uriLow;
+    testCountInput.value = context.testCount;
+    testCountRange.value =
+      context.testCount >= 5 && context.testCount <= 50
+        ? context.testCount
+        : 20;
+
+    // userNameInput always blank
+    userNameInput.value = "";
+
+    // If the test was completed, we show results
+    if (context.totalCount > 0 && context.totalCount === context.testCount) {
+      displayResult();
+    }
+  } catch (e) {
+    // do nothing on decode error
+  }
+})();
+
+// Share
+document.getElementById("shareResultsBtn").addEventListener("click", () => {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Result URL has been copied to your clipboard!");
+  }).catch(() => {
+    alert("Failed to copy URL.");
+  });
+});
+</script>
+</body>
+</html>
