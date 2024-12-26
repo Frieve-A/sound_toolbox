@@ -171,7 +171,7 @@
       <div id="testResultConclusion"></div>
       <button id="shareResultsBtn">Share your results</button>
       <p id="shareExplanation" style="margin-top:1rem;">
-        By clicking "Share your results", the link to this page will be copied to your clipboard.
+        By clicking "Share your results", the score and a link to this page will be copied to your clipboard.
       </p>
     </div>
 
@@ -245,7 +245,7 @@
     <div class="progress-container">
       <div class="progress-bar" id="abxProgressBar"></div>
     </div>
-    <ul style="margin-top: 2rem; line-height: 1.6%;">
+    <ul style="margin-top: 2rem; line-height: 1.6;">
       <li>You can listen to each audio sample as many times as you like.</li>
       <li>Click the same button again to stop playback.</li>
       <li>When you know which one matches X, click the corresponding vote button!</li>
@@ -702,10 +702,11 @@ function updateURI() {
 // Share
 document.getElementById("shareResultsBtn").addEventListener("click", () => {
   const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => {
-    alert("Result URL has been copied to your clipboard!");
+  const title = document.getElementById("testResultTitle");
+  navigator.clipboard.writeText(title.textContent + "\n(On Frieve Sound #ABXTester)\n" + url).then(() => {
+    alert("The result has been copied to your clipboard!");
   }).catch(() => {
-    alert("Failed to copy URL.");
+    alert("Failed to copy result.");
   });
 });
 </script>

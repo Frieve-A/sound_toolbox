@@ -171,7 +171,7 @@
       <div id="testResultConclusion"></div>
       <button id="shareResultsBtn">結果を共有</button>
       <p id="shareExplanation" style="margin-top:1rem;">
-        「結果を共有」をクリックすると、このページへのリンクがクリップボードにコピーされます。
+        「結果を共有」をクリックすると、スコアとこのページへのリンクがクリップボードにコピーされます。
       </p>
     </div>
 
@@ -197,7 +197,7 @@
     <div id="configError" class="error hidden"></div>
 
     <ul style="margin-top: 2rem; line-height: 1.6;">
-      <li>ようこそ！このツールは、A/BテストやABXテストで2つの音声ファイルを比較するのに役立ちます。</li>
+      <li>ようこそ！A/BテストやABXテストで2つの音声ファイルを聞き分けられるかどうかを試しましょう。</li>
       <li>何度でも再生し、違いを聞き取れるか試してみてください。</li>
       <li>A/B比較テスト：どちらの音質がより良いか選んでください。</li>
       <li>ABXテスト：XはAとBのどちらと同じ音声か判定してください。</li>
@@ -245,7 +245,7 @@
     <div class="progress-container">
       <div class="progress-bar" id="abxProgressBar"></div>
     </div>
-    <ul style="margin-top: 2rem; line-height: 1.6%;">
+    <ul style="margin-top: 2rem; line-height: 1.6;">
       <li>各音声サンプルは何度でも再生可能です。</li>
       <li>同じボタンを再度クリックすると再生を停止します。</li>
       <li>Xがどちらか分かったら、そのボタンを押してください。</li>
@@ -702,10 +702,11 @@ function updateURI() {
 // Share
 document.getElementById("shareResultsBtn").addEventListener("click", () => {
   const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => {
-    alert("結果ページのURLをクリップボードにコピーしました！");
+  const title = document.getElementById("testResultTitle");
+  navigator.clipboard.writeText(title.textContent + "\n(On Frieve Sound #ABXTester)\n" + url).then(() => {
+    alert("結果をクリップボードにコピーしました！");
   }).catch(() => {
-    alert("URLのコピーに失敗しました。");
+    alert("結果のコピーに失敗しました。");
   });
 });
 </script>
