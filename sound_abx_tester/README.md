@@ -1,7 +1,7 @@
 # Frieve Sound ABX Tester
 
-Frieve Sound ABX Tester is an app designed to test whether you can distinguish differences between two sound files.  
-[> Open the App](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/sound_abx_tester.html?data=eyJuIjoiIiwidUgiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvOTZrMjRiaXQud2F2IiwidUwiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvNDQuMWsxNmJpdC53YXYiLCJ0VCI6IkFCUFJFRiIsImNDIjowLCJ0QyI6MCwidGMiOjEwLCJ0cyI6MH0-)
+Frieve Sound ABX Tester is an app designed to test whether you can distinguish differences between two sound files.
+[> Open the App](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/sound_abx_tester.html?data=eyJuIjoiIiwidUgiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvOTZrMjRiaXQud2F2IiwidUwiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvMTI4a2Jwcy5tcDMiLCJ0VCI6IkFCUFJFRiIsImNDIjowLCJ0QyI6MCwidGMiOjIwLCJ0cyI6MH0-)
 
 ![Screenshot](sound_abx_tester.png)
 
@@ -19,7 +19,7 @@ Frieve Sound ABX Tester is an app designed to test whether you can distinguish d
 ---
 
 Frieve Sound ABX Tester は、2つの音声ファイルの差異を聞き分けることができるかどうかのテストを行うためのアプリです。
-[> アプリを開く](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/sound_abx_tester_ja.html?data=eyJuIjoiIiwidUgiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvOTZrMjRiaXQud2F2IiwidUwiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvNDQuMWsxNmJpdC53YXYiLCJ0VCI6IkFCUFJFRiIsImNDIjowLCJ0QyI6MCwidGMiOjEwLCJ0cyI6MH0-))
+[> アプリを開く](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/sound_abx_tester_ja.html?data=eyJuIjoiIiwidUgiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvOTZrMjRiaXQud2F2IiwidUwiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvMTI4a2Jwcy5tcDMiLCJ0VCI6IkFCUFJFRiIsImNDIjowLCJ0QyI6MCwidGMiOjIwLCJ0cyI6MH0-)
 
 ![スクリーンショット](sound_abx_tester_ja.png)
 
