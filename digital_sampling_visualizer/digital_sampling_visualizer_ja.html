@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Frieve Digital Sampling Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #222;
+      color: #ddd;
+      font-family: sans-serif;
+    }
+    .container {
+      width: 1280px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .controls {
+      margin-bottom: 10px;
+      padding: 8px 0;
+    }
+    .control-group-title {
+      margin: 0 0 5px 0;
+      font-size: 16px;
+      color: #fff;
+      width: 212px;
+    }
+    .control-line {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+    }
+    .control-label-text {
+      display: inline-block;
+      width: 256px;
+      text-align: left;
+    }
+    .control-line input[type="range"] {
+      width: 300px;
+    }
+    .value-label {
+      min-width: 60px;
+      text-align: right;
+    }
+    .check-blue {
+      color: #00aaff;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .check-yellow {
+      color: #ffdd00;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .check-red {
+      color: #ff3333;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .checkbox-controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+    canvas {
+      background-color: #333;
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #555;
+    }
+    .description {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Frieve Digital Sampling Visualizer</h1>
+
+  <!-- Original signal controls -->
+  <div class="controls" style="display: flex; align-items: flex-start;">
+    <h3 class="control-group-title">元信号 :</h3>
+    <div style="display: flex; flex-direction: column;">
+      <label class="control-line">
+        <span class="control-label-text">信号周波数</span>
+        <input type="range" id="signalFreq" min="0" max="256" value="128" step="1">
+        <span class="value-label" id="signalFreqVal"></span>Hz
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">信号レベル(dB)</span>
+        <input type="range" id="signalLevel" min="-144" max="0" value="0">
+        <span class="value-label" id="signalLevelVal"></span>
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">ホワイトノイズレベル(dB)</span>
+        <input type="range" id="noiseLevel" min="-145" max="0" value="-145">
+        <span class="value-label" id="noiseLevelVal"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Display range controls -->
+  <div class="controls" style="display: flex; align-items: flex-start;">
+    <h3 class="control-group-title">表示範囲 :</h3>
+    <div style="display: flex; flex-direction: column;">
+      <label class="control-line">
+        <span class="control-label-text">振幅方向表示範囲(dB)</span>
+        <input type="range" id="ampRange" min="-144" max="0" value="0">
+        <span class="value-label" id="ampRangeVal"></span>
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">時間方向表示範囲(ms)</span>
+        <input type="range" id="timeRange" min="1" max="50" value="1">
+        <span class="value-label" id="timeRangeVal"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Digital sampling settings -->
+  <div class="controls" style="display: flex; align-items: flex-start;">
+    <h3 class="control-group-title">デジタルサンプリング設定 :</h3>
+    <div style="display: flex; flex-direction: column;">
+      <label class="control-line">
+        <span class="control-label-text">サンプリング周波数</span>
+        <input type="range" id="sampleFreq" min="40" max="1920" value="441" step="1">
+        <span class="value-label" id="sampleFreqVal"></span>Hz
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">bit数</span>
+        <input type="range" id="bitDepth" min="2" max="24" value="6">
+        <span class="value-label" id="bitDepthVal"></span>
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">アンチエイリアシングフィルタタップ数</span>
+        <input type="range" id="aaFilterK" min="0" max="1024" value="0" step="1">
+        <span class="value-label" id="aaFilterKVal"></span>
+      </label>
+      <label class="control-line">
+        <span class="control-label-text">アップサンプリングフィルタタップ数</span>
+        <input type="range" id="filterK" min="0" max="32" value="20" step="1">
+        <span class="value-label" id="filterKVal"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Display checkboxes -->
+  <div class="checkbox-controls">
+    <label class="check-blue">
+      <input type="checkbox" id="showOriginal" checked>
+      元信号表示
+    </label>
+    <label class="check-yellow">
+      <input type="checkbox" id="showSampling" checked>
+      サンプリング表示
+    </label>
+    <label class="check-yellow">
+      <input type="checkbox" id="showSamplingLine" checked>
+      線
+    </label>
+    <label class="check-red">
+      <input type="checkbox" id="showDAC" checked>
+      DAC結果表示
+    </label>
+  </div>
+
+  <!-- Graph -->
+  <canvas id="waveCanvas" width="1280" height="720"></canvas>
+
+  <!-- Description -->
+  <div class="description">
+    デジタルオーディオにおいて元波形がサンプリングされる様子、サンプリングされた波形を元に元波形が再現される様子をビジュアル、直感的に体験できるアプリです。<br>
+    音の波形がサンプリング周波数、ビット数の設定でどのように変わっていくのかについて、色分けされたのグラフで簡単に見比べることができます。<br>
+    <br>
+    ＜使い方＞<br>
+    上部のスライドバーでサンプリングする元信号の「周波数」「レベル」「ノイズ」、サンプリングのパラメータである「サンプリング周波数」「bit数」などを調整。<br>
+    「元信号表示」(青)、「サンプリング表示」(黄色)、 「DAC結果表示」(赤)のチェックボックスで、それぞれ元のアナログ信号、サンプリングにより量子化された階段状のデジタル信号、DAC後の信号の波形表示のON/OFFを切り替えます。<br>
+    設定を様々に変更し、元のアナログ信号の波形の元波形とDAC後の信号の波形がどのように変化するか確かめてみましょう。<br>
+    <br>
+    ＜ポイント＞<br>
+    デジタルサンプリングは重要な可聴帯域において驚くほど忠実に元の波形を再現します。現代においてデジタル段階で階段状に表現されることはほとんど問題ではありません。<br>
+    デジタル波形をそのまま再生することをうたうR2R DACの出力波形は元のアナログ波形とは似ても似つかないクソです。皆さん騙されないで！
+  </div><br>
+
+</div>
+  
+<script>
+/* -----------------------------------------
+   Global variables
+----------------------------------------- */
+const canvas = document.getElementById("waveCanvas");
+const ctx = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
+
+// Margins
+const marginLeft = 60;
+const marginRight = 40;
+const marginTop = 40;
+const marginBottom = 50;
+
+// Number of samples for display
+const srView = width - marginLeft - marginRight;
+
+// Margin samples to avoid edge interpolation issues
+const MARGIN = 1000;
+const srAll = srView + 2 * MARGIN;
+
+// UI elements
+const showOriginal     = document.getElementById("showOriginal");
+const showSampling     = document.getElementById("showSampling");
+const showSamplingLine = document.getElementById("showSamplingLine");
+const showDAC          = document.getElementById("showDAC");
+
+const signalFreq   = document.getElementById("signalFreq");
+const signalLevel  = document.getElementById("signalLevel");
+const noiseLevel   = document.getElementById("noiseLevel");
+const ampRange     = document.getElementById("ampRange");
+const timeRange    = document.getElementById("timeRange");
+const sampleFreq   = document.getElementById("sampleFreq");
+const bitDepth     = document.getElementById("bitDepth");
+const aaFilterK    = document.getElementById("aaFilterK");
+const filterK      = document.getElementById("filterK");
+
+const signalFreqVal  = document.getElementById("signalFreqVal");
+const signalLevelVal = document.getElementById("signalLevelVal");
+const noiseLevelVal  = document.getElementById("noiseLevelVal");
+const ampRangeVal    = document.getElementById("ampRangeVal");
+const timeRangeVal   = document.getElementById("timeRangeVal");
+const sampleFreqVal  = document.getElementById("sampleFreqVal");
+const bitDepthVal    = document.getElementById("bitDepthVal");
+const aaFilterKVal   = document.getElementById("aaFilterKVal");
+const filterKVal     = document.getElementById("filterKVal");
+
+// Event listeners
+[
+  showOriginal, showSampling, showSamplingLine, showDAC,
+  signalFreq, signalLevel, noiseLevel,
+  ampRange, timeRange, sampleFreq, bitDepth,
+  aaFilterK, filterK
+].forEach(el => {
+  el.addEventListener("input", () => {
+    updateVals();
+    draw();
+  });
+});
+
+// Convert slider value to logarithmic frequency
+function sliderToLogFreq(sliderValue){
+  const baseFreq = 1000;
+  return baseFreq * Math.pow(2, (sliderValue - 128) / 20);
+}
+
+function updateVals(){
+  const f = sliderToLogFreq(parseInt(signalFreq.value));
+  signalFreqVal.textContent  = Math.round(f);
+
+  signalLevelVal.textContent = signalLevel.value;
+  noiseLevelVal.textContent  = noiseLevel.value <= -145 ? "Off" : noiseLevel.value;
+  ampRangeVal.textContent    = ampRange.value;
+  timeRangeVal.textContent   = timeRange.value;
+
+  const fs = parseInt(sampleFreq.value) * 100;
+  sampleFreqVal.textContent  = fs;
+  bitDepthVal.textContent    = bitDepth.value;
+
+  // For anti-aliasing filter taps (0 => no filtering)
+  aaFilterKVal.textContent   = parseInt(aaFilterK.value) * 2 + 1;
+
+  // Filter taps = 2*K+1 for upsampling
+  filterKVal.textContent     = parseInt(filterK.value) * 2 + 1;
+}
+
+updateVals();
+
+function dbToLinear(db){
+  if(db <= -145) return 0;
+  return Math.pow(10, db/20);
+}
+
+function clamp(v, vmin, vmax){
+  return Math.max(vmin, Math.min(vmax, v));
+}
+
+function getSignalFreq(){
+  return sliderToLogFreq(parseInt(signalFreq.value));
+}
+
+function getSampleFreq(){
+  return parseInt(sampleFreq.value) * 100;
+}
+
+function timeToX(tSec){
+  const x0= marginLeft;
+  const x1= width - marginRight;
+  const tMax= parseFloat(timeRange.value)/1000;
+  return x0 + (x1 - x0) * (tSec / tMax);
+}
+
+function ampToY(a){
+  const y0= marginTop;
+  const y1= height - marginBottom;
+  const centerY= (y0 + y1) * 0.5;
+
+  const topDb= parseFloat(ampRange.value);
+  const topVal= dbToLinear(topDb);
+  const ratio= a / topVal;
+  return centerY - ratio * (centerY - y0);
+}
+
+function generateOriginalFloat(){
+  const freq= getSignalFreq();
+  const levDb= parseFloat(signalLevel.value);
+  const levLin= dbToLinear(levDb);
+  const noiDb= parseFloat(noiseLevel.value);
+  const noiLin= dbToLinear(noiDb);
+  const tMax= parseFloat(timeRange.value)/1000;
+
+  const dataF= new Array(srAll);
+  for(let i=0; i< srAll; i++){
+    const t= ((i + 0.5) - MARGIN)/ srView * tMax;
+    const s= levLin * Math.sin(2 * Math.PI * freq * t);
+    const n= (Math.random()*2 -1) * noiLin;
+    dataF[i]= s + n;
+  }
+  return dataF;
+}
+
+function applyAAFilter(dataF, Fs, aaK){
+  if(aaK <= 0) {
+    return dataF.slice();
+  }
+
+  const tMax = parseFloat(timeRange.value) / 1000;
+  const Fdisp = srView / tMax;
+  let fc = Fs / 2;
+  if(fc > Fdisp / 2) {
+    fc = Fdisp / 2;
+  }
+
+  const outF = new Array(dataF.length).fill(0);
+
+  function sinc(x){
+    if(Math.abs(x)<1.0e-12) return 1.0;
+    return Math.sin(Math.PI*x)/(Math.PI*x);
+  }
+  function blackmanWindow(k, Ktotal){
+    const alpha=0.16;
+    const a0= 0.5*(1 - alpha);
+    const a1= 0.5;
+    const a2= alpha/2;
+    const w= 2*Math.PI*k / Ktotal;
+    return a0 - a1*Math.cos(w) + a2*Math.cos(2*w);
+  }
+
+  const K = aaK;
+  for(let i=0; i<dataF.length; i++){
+    let sum=0;
+    let wsum=0;
+    for(let k=-K; k<=K; k++){
+      const idx= i + k;
+      let val=0;
+      if(idx<0){
+        val= dataF[0];
+      } else if(idx>= dataF.length){
+        val= dataF[dataF.length-1];
+      } else {
+        val= dataF[idx];
+      }
+      const arg= 2*fc * (k / Fdisp);
+      let w = sinc(arg) * (2*fc / Fdisp);
+
+      // Blackman
+      const kWin= k + K;
+      w *= blackmanWindow(kWin, 2*K);
+
+      sum += val * w;
+      wsum+= w;
+    }
+    if(Math.abs(wsum)>1.0e-12){
+      outF[i] = sum / wsum;
+    } else {
+      outF[i] = 0;
+    }
+  }
+  return outF;
+}
+
+function doSamplingQuantize(origFloat){
+  const Fs= getSampleFreq();
+  const bd= parseInt(bitDepth.value);
+  const maxAmp= (1 << (bd-1)) - 1;
+  const tMax= parseFloat(timeRange.value)/1000;
+
+  // Anti-alias filtering
+  const aaK= parseInt(aaFilterK.value);
+  const filteredFloat = applyAAFilter(origFloat, Fs, aaK);
+
+  const N= Math.floor(Fs * tMax);
+  if(N<1) return [];
+
+  const totalN = N + 2*MARGIN;
+  const sampInt= new Array(totalN);
+
+  for(let i=0; i< totalN; i++){
+    const n= i - MARGIN;
+    const t= n / Fs;
+    const xIdx= (t / tMax) * srView + MARGIN;
+    const idxLow= Math.floor(xIdx);
+    const frac= xIdx - idxLow;
+
+    let valF=0;
+    if(idxLow<0){
+      valF= filteredFloat[0];
+    } else if(idxLow>= srAll-1){
+      valF= filteredFloat[srAll-1];
+    } else {
+      const v0= filteredFloat[idxLow];
+      const v1= filteredFloat[idxLow+1];
+      valF= v0 + frac*(v1 - v0);
+    }
+
+    let valI= Math.round(valF * maxAmp);
+    if(valI>  maxAmp) valI=  maxAmp;
+    if(valI< -maxAmp) valI= -maxAmp;
+    sampInt[i]= valI;
+  }
+  return sampInt;
+}
+
+function makeSampleDataArray(sampInt){
+  const Fs= getSampleFreq();
+  if(sampInt.length<1) return [];
+  const data= [];
+  for(let i=0; i< sampInt.length; i++){
+    const n= i - MARGIN;
+    data.push({ t: n / Fs, val: sampInt[i] });
+  }
+  return data;
+}
+
+function drawSteppedWave(sampleData, color){
+  if(!sampleData || sampleData.length<2) return;
+  const bd= parseInt(bitDepth.value);
+  const maxAmp= (1 << (bd-1)) - 1;
+  const tMax= parseFloat(timeRange.value)/1000;
+
+  const disp = sampleData.filter(d => d.t>=0 && d.t<= tMax);
+  if(disp.length<2) return;
+
+  ctx.strokeStyle= color;
+  ctx.lineWidth= 2;
+  ctx.beginPath();
+
+  const x0= timeToX(disp[0].t);
+  const y0= ampToY(disp[0].val / maxAmp);
+  ctx.moveTo(x0, y0);
+
+  for(let i=0; i< disp.length -1; i++){
+    const tCur= disp[i].t;
+    const tNext= disp[i+1].t;
+    const valCur= disp[i].val;
+    const valNext= disp[i+1].val;
+
+    const xCur= timeToX(tCur);
+    const yCur= ampToY(valCur / maxAmp);
+    const xNext= timeToX(tNext);
+    const yNext= ampToY(valNext / maxAmp);
+
+    ctx.lineTo(xNext, yCur);
+    ctx.lineTo(xNext, yNext);
+  }
+  ctx.stroke();
+}
+
+function drawSampling(sampleData, color){
+  if(!sampleData || sampleData.length<2) return;
+  const bd= parseInt(bitDepth.value);
+  const maxAmp= (1 << (bd-1)) - 1;
+  const tMax= parseFloat(timeRange.value)/1000;
+
+  const disp = sampleData.filter(d => d.t>=0 && d.t<= tMax);
+  if(disp.length<2) return;
+
+  ctx.fillStyle = color;
+
+  for(let i=0; i< disp.length; i++){
+    const t= disp[i].t;
+    const val= disp[i].val;
+
+    const x= timeToX(t);
+    const y= ampToY(val / maxAmp);
+
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2, false);
+    ctx.fill();
+  }
+}
+
+// If filterK=0, process with Nearest Neighbor
+function makeUpsampledFloat(sampleData){
+  const Fs = getSampleFreq();
+  const bd = parseInt(bitDepth.value);
+  const maxAmp = (1 << (bd-1)) - 1;
+
+  const tMax = parseFloat(timeRange.value)/1000;
+  const Fdisp= srView / tMax;
+  const N = sampleData.length;
+  if(N<2) return [];
+
+  const K = parseInt(filterK.value);
+
+  // K=0 → Nearest Neighbor (1 tap)
+  if (K === 0) {
+    const outF= new Array(srView).fill(0);
+    for(let i=0; i< srView; i++){
+      const tOut = (i+0.5)/Fdisp;
+      const nCenter = Math.round(tOut * Fs + MARGIN);
+      let idx = clamp(nCenter, 0, N-1);
+      outF[i] = sampleData[idx].val / maxAmp;
+    }
+    return outF;
+  }
+
+  // K>0 → Blackman-windowed sinc
+  let fc = Fs/2;
+  const maxDisp= Fdisp/2;
+  if(fc> maxDisp) fc= maxDisp;
+
+  function sinc(x){
+    if(Math.abs(x)<1.0e-12) return 1.0;
+    return Math.sin(Math.PI*x)/(Math.PI*x);
+  }
+  function blackmanWindow(k, Ktotal){
+    const alpha=0.16;
+    const a0= 0.5*(1 - alpha);
+    const a1= 0.5;
+    const a2= alpha/2;
+    const w= 2*Math.PI*k / Ktotal;
+    return a0 - a1*Math.cos(w) + a2*Math.cos(2*w);
+  }
+
+  const outF= new Array(srView).fill(0);
+  for(let i=0; i< srView; i++){
+    const tOut= (i+0.5)/Fdisp;
+    const nCenter= tOut*Fs + MARGIN;
+    let sum=0;
+    let wsum=0;
+
+    for(let k=-K; k<=K; k++){
+      const n= Math.floor(nCenter) + k;
+      let valI=0;
+      let tIn=0;
+
+      if(n<0){
+        valI= sampleData[0].val;
+        tIn= sampleData[0].t;
+      } else if(n>= N){
+        valI= sampleData[N-1].val;
+        tIn= sampleData[N-1].t;
+      } else {
+        valI= sampleData[n].val;
+        tIn= sampleData[n].t;
+      }
+
+      const tDiff= tOut - tIn;
+      const arg= 2*fc * tDiff;
+      let w= sinc(arg) * (fc * 2);
+
+      const kWin= (k + K);
+      w*= blackmanWindow(kWin, 2*K);
+
+      sum += valI * w;
+      wsum+= w;
+    }
+
+    let valF= 0;
+    if(Math.abs(wsum)>1.0e-12){
+      valF= sum/wsum;
+    }
+    valF/= maxAmp;
+
+    outF[i]= valF;
+  }
+  return outF;
+}
+
+function drawWaveFloat(dataF, color, offset=0, lineWidth){
+  ctx.strokeStyle= color;
+  ctx.lineWidth= lineWidth;
+  ctx.beginPath();
+  for(let i=0; i< srView; i++){
+    const px= marginLeft + i;
+    const py= ampToY(dataF[i+ offset]);
+    if(i===0) ctx.moveTo(px, py);
+    else      ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+/* -----------------------------------------
+   Clipping for drawing inside the graph area
+----------------------------------------- */
+function startClipping(){
+  const x0= marginLeft;
+  const x1= width - marginRight;
+  const y0= marginTop;
+  const y1= height - marginBottom;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, x1 - x0, y1 - y0);
+  ctx.clip();
+}
+function endClipping(){
+  ctx.restore();
+}
+
+/* -----------------------------------------
+   Drawing sample grid lines
+----------------------------------------- */
+function drawSampleGrid(){
+  startClipping();
+
+  const Fs= getSampleFreq();
+  const tMax= parseFloat(timeRange.value)/1000;
+  if(Fs<=0) {
+    endClipping();
+    return;
+  }
+  const Ts= 1/Fs;
+
+  const x0= marginLeft;
+  const x1= width - marginRight;
+  const y0= marginTop;
+  const y1= height - marginBottom;
+
+  ctx.strokeStyle= "rgba(255,255,255,0.1)";
+  ctx.lineWidth=1;
+
+  let n=0;
+  while(true){
+    const tSamp= n*Ts;
+    if(tSamp> tMax) break;
+    const xx= timeToX(tSamp);
+    ctx.beginPath();
+    ctx.moveTo(xx, y0);
+    ctx.lineTo(xx, y1);
+    ctx.stroke();
+    n++;
+  }
+
+  endClipping();
+}
+
+/* -----------------------------------------
+   Drawing bit-depth grid lines
+----------------------------------------- */
+function drawBitBoundaries(){
+  startClipping();
+
+  const bd= parseInt(bitDepth.value);
+  const maxAmp= (1 << (bd-1)) - 1;
+  if(maxAmp<1){
+    endClipping();
+    return;
+  }
+  const stepVal= 1/maxAmp;
+  const pxPerStep= Math.abs( ampToY(0) - ampToY(stepVal) );
+  if(pxPerStep<2){
+    endClipping();
+    return;
+  }
+
+  const x0= marginLeft;
+  const x1= width - marginRight;
+
+  ctx.strokeStyle= "rgba(255,255,255,0.1)";
+  ctx.lineWidth=1;
+
+  outerLoop: for(let i=0; i<=maxAmp; i++){
+    for(let j=-1; j<=1; j+=2){
+      const fv= i * j / maxAmp;
+      const y= ampToY(fv);
+      if (y < marginTop){
+        break outerLoop;
+      }
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x1, y);
+      ctx.stroke();
+    }
+  }
+
+  endClipping();
+}
+
+/* -----------------------------------------
+   Drawing axes
+----------------------------------------- */
+function drawAxis(){
+  ctx.fillStyle="#333";
+  ctx.fillRect(0,0,width,height);
+
+  const x0= marginLeft;
+  const x1= width - marginRight;
+  const y0= marginTop;
+  const y1= height - marginBottom;
+
+  ctx.strokeStyle="#888";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(x0, y1);
+  ctx.lineTo(x1, y1);
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x0, y1);
+  ctx.stroke();
+
+  ctx.font="14px sans-serif";
+  ctx.fillStyle= "#ddd";
+  ctx.textAlign= "right";
+  ctx.textBaseline= "middle";
+
+  // Vertical axis (dB)
+  const topDb = parseFloat(ampRange.value);
+  let startDb = Math.floor(topDb / 6) * 6;
+  if(startDb > topDb){
+    startDb -= 6;
+  }
+
+  for(let i=0; i<3; i++){
+    const dbTick = startDb - 6*i;
+    if(dbTick < -144) break;
+    const linVal= dbToLinear(dbTick);
+    const ratio= linVal / dbToLinear(topDb);
+    const centerY= (y0 + y1)*0.5;
+    const y= centerY - ratio*(centerY - y0);
+
+    if(y< y0-2 || y> y1+2) continue;
+
+    ctx.beginPath();
+    ctx.moveTo(x0-4, y);
+    ctx.lineTo(x0,   y);
+    ctx.stroke();
+
+    ctx.fillText(dbTick+" dB", x0-6, y);
+  }
+
+  // Horizontal axis (ms)
+  ctx.textAlign="center";
+  ctx.textBaseline="top";
+  const tMaxMs= parseFloat(timeRange.value);
+  const divNum= 5;
+  for(let i=0; i<= divNum; i++){
+    const msVal= (tMaxMs/divNum)* i;
+    const xx= x0 + (x1 - x0)*(i/divNum);
+    ctx.beginPath();
+    ctx.moveTo(xx, y1);
+    ctx.lineTo(xx, y1+5);
+    ctx.stroke();
+    ctx.fillText(msVal.toFixed(1)+" ms", xx, y1+7);
+  }
+}
+
+function draw(){
+  drawAxis();
+
+  startClipping();
+  const origF = generateOriginalFloat();
+  const sampI = doSamplingQuantize(origF);
+  const sampleData = makeSampleDataArray(sampI);
+
+  let dacF= [];
+  if(sampleData.length>1){
+    dacF= makeUpsampledFloat(sampleData);
+  }
+
+  if(showSampling.checked){
+    drawSampleGrid();
+    drawBitBoundaries();
+  }
+
+  if(showOriginal.checked){
+    drawWaveFloat(origF, "#00aaff", MARGIN, 1);
+  }
+  if(showSampling.checked && sampleData.length>0){
+    if (showSamplingLine.checked){
+      drawSteppedWave(sampleData, "#ffdd00");
+    }else{
+      drawSampling(sampleData, "#ffdd00");
+    }
+  }
+  if(showDAC.checked && dacF.length=== srView){
+    drawWaveFloat(dacF, "#ff3333", 0, 2);
+  }
+
+  endClipping();
+
+  // Legend
+  ctx.font="14px sans-serif";
+  ctx.textAlign="left";
+  ctx.textBaseline="top";
+  let legendY= marginTop+10;
+  const legendX= width - marginRight - 80;
+  if(showOriginal.checked){
+    ctx.fillStyle="#00aaff";
+    ctx.fillText("元信号", legendX, legendY);
+    legendY+=18;
+  }
+  if(showSampling.checked){
+    ctx.fillStyle="#ffdd00";
+    ctx.fillText("サンプリング", legendX, legendY);
+    legendY+=18;
+  }
+  if(showDAC.checked && showSampling.checked){
+    ctx.fillStyle="#ff3333";
+    ctx.fillText("DAC", legendX, legendY);
+    legendY+=18;
+  }
+}
+
+// Initial drawing on page load
+window.addEventListener("load", () => {
+  updateVals();
+  draw();
+});
+</script>
+</body>
+</html>
