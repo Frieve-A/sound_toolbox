@@ -23,7 +23,7 @@ R2R DACs, which claim to play back the digital waveform as-is, produce an output
 デジタルオーディオにおいて元波形がサンプリングされる様子、サンプリングされた波形を元に元波形が再現される様子をビジュアル、直感的に体験できるアプリです。
 音の波形がサンプリング周波数、ビット数の設定でどのように変わっていくのかについて、色分けされたのグラフで簡単に見比べることができます。
 
-[> アプリを開く](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer_ja/digital_sampling_visualizer_ja.html)
+[> アプリを開く](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer/digital_sampling_visualizer_ja.html)
 
 ![スクリーンショット](digital_sampling_visualizer_ja.png)
 
