@@ -31,6 +31,14 @@ Double-blind test game for audio files [> Open App](https://l.facebook.com/l.php
 
 ---
 
+[Frieve Digital Sampling Visualizer](digital_sampling_visualizer/README.md)
+
+A visual aid for learning digital sampling [> Open App](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer/digital_sampling_visualizer.html)
+
+![Screenshot](digital_sampling_visualizer/digital_sampling_visualizer.png)
+
+---
+
 ブラウザ上で動作する音に関連するツールです。
 
 ---
@@ -56,3 +64,11 @@ Double-blind test game for audio files [> Open App](https://l.facebook.com/l.php
 音声ファイルのダブルブラインドテストゲーム [> アプリを開く](https://l.facebook.com/l.php?u=https%3A%2F%2Ffrieve-a.github.io%2Fsound_toolbox%2Fsound_abx_tester%2Fsound_abx_tester_ja.html%3Fdata%3DeyJuIjoiIiwidUgiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvOTZrMjRiaXQud2F2IiwidUwiOiJodHRwczovL2ZyaWV2ZS1hLmdpdGh1Yi5pby9zb3VuZF90b29sYm94L3NvdW5kX2FieF90ZXN0ZXIvNDQuMWsxNmJpdC53YXYiLCJ0VCI6IkFCUFJFRiIsImNDIjowLCJ0QyI6MCwidGMiOjEwLCJ0cyI6MH0-%26fbclid%3DIwZXh0bgNhZW0CMTAAAR0MFn9o3ukPWogtYUASR_bioTHneHi2zhzwp3rOdpkDpRTX9uBcpHdBAIw_aem_I0yZINeunlk-zBF4EbUquA&h=AT3LIilN7Vu8ZknI3pzJiI2bbNHtjLcps_hM8AoFD-emPOsiHlZz8vz8vzrM1ZPoUEDIECw7WlOj_f5z185VcKIURUBRjjzcm7PiKdZE7GtH1X1wKOBoZMUx1o733jjkfdUuKwWJqTpjHBdY-Ewz&__tn__=-UK*F)
 
 ![Screenshot](sound_abx_tester/sound_abx_tester_ja.png)
+
+---
+
+[Frieve Digital Sampling Visualizer](digital_sampling_visualizer/README.md)
+
+デジタルサンプリングを直感的に理解するためのビジュアルな教材 [> Open App](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer/digital_sampling_visualizer_ja.html)
+
+![Screenshot](digital_sampling_visualizer/digital_sampling_visualizer_ja.png)
