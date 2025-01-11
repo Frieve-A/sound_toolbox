@@ -5,7 +5,7 @@ You can easily compare how the audio waveform changes with different sampling fr
 
 [> Open the App](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer/digital_sampling_visualizer.html)
 
-![Screenshot](digital_audio_visualizer.png)
+![Screenshot](digital_sampling_visualizer.png)
 
 ## Usage
 
