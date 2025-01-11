@@ -17,6 +17,7 @@ Experiment with various settings to see how the waveform of the original analog 
 
 Digital sampling can reproduce the original waveform surprisingly faithfully within the important audible range. In modern audio, it's rarely a real problem that the signal is represented by digital steps.
 R2R DACs, which claim to play back the digital waveform as-is, produce an output waveform that looks nothing like the original analog waveform. It's crap. Don't be fooled!
+
 ---
 
 デジタルオーディオにおいて元波形がサンプリングされる様子、サンプリングされた波形を元に元波形が再現される様子をビジュアル、直感的に体験できるアプリです。
