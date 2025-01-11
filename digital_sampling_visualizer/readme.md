@@ -14,6 +14,7 @@ Use the checkboxes "Show Original Signal" (blue), "how Sampling" (yellow), and "
 Experiment with various settings to see how the waveform of the original analog signal changes compared to the waveform after the DAC.
 
 ## Key Point
+
 Digital sampling can reproduce the original waveform surprisingly faithfully within the important audible range. In modern audio, it's rarely a real problem that the signal is represented by digital steps.
 R2R DACs, which claim to play back the digital waveform as-is, produce an output waveform that looks nothing like the original analog waveform. It's crap. Don't be fooled!
 ---
