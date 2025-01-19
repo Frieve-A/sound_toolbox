@@ -16,6 +16,10 @@ Frieve Sound ABX Tester is an app designed to test whether you can distinguish d
 - When the specified number of tests is completed, the app displays your correct answer rate, the time taken to make each judgment, and whether we can confidently say you noticed the difference.
 - Press the "Share Results" button to copy the URL for sharing your results to the clipboard.
 
+## Examples of use
+Compare the original music file with the file after DA/AD conversion
+[> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/da_ad/daad_test.html)
+
 ---
 
 Frieve Sound ABX Tester は、2つの音声ファイルの差異を聞き分けることができるかどうかのテストを行うためのアプリです。
@@ -33,3 +37,7 @@ Frieve Sound ABX Tester は、2つの音声ファイルの差異を聞き分け�
 - A/B比較テストでは高音質の音声として入力した方の音声を、ABXテストではXと同じ音声をA、Bから選択します。
 - 指定回数のテストが終わると正答率、判断に要した時間、差が分かったと言えるかなどの成績が表示されます。
 - 結果を共有ボタンを押して、結果を共有するためのURLをクリップボードにコピーします。
+
+## 使用例
+オリジナルの音楽ファイルとDA/AD変換を介した後のファイルを聞き比べる
+[> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/da_ad/daad_test.html)
