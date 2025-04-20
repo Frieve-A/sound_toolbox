@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSD Explained</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+</head>
+<body>
+    <div class="header">
+        <h1>DSD Explained</h1>
+        <a href="index.html">What's this app?</a>
+    </div>
+
+    <div class="controls">
+        <!-- Simulation Speed -->
+        <div class="control-group">
+            <label for="speedSlider">Simulation Speed (log10 factor):</label>
+            <div class="slider-container">
+                <input type="range" id="speedSlider" name="speedSlider" min="-5" max="-2" step="0.1" value="-3.5">
+                <input type="number" id="speedValueText" name="speedValueText" min="-5" max="-2" step="0.1" value="-3.5">
+            </div>
+        </div>
+
+        <!-- Sampling Frequency -->
+        <div class="control-group">
+            <label>Over Sampling:</label>
+            <div class="radio-group">
+                <input type="radio" id="fs64" name="samplingFrequency" value="64" checked>
+                <label for="fs64" class="fs-label" data-value="64">64</label>
+                <input type="radio" id="fs128" name="samplingFrequency" value="128">
+                <label for="fs128" class="fs-label" data-value="128">128</label>
+                <input type="radio" id="fs256" name="samplingFrequency" value="256">
+                <label for="fs256" class="fs-label" data-value="256">256</label>
+                <input type="radio" id="fs512" name="samplingFrequency" value="512">
+                <label for="fs512" class="fs-label" data-value="512">512</label>
+            </div>
+        </div>
+
+        <!-- AD Bits -->
+        <div class="control-group">
+            <label for="adBitsSlider">A/D Bits:</label>
+             <div class="slider-container">
+                <input type="range" id="adBitsSlider" name="adBitsSlider" min="1" max="6" step="1" value="1">
+                <input type="number" id="adBitsValueText" name="adBitsValueText" min="1" max="6" step="1" value="1">
+                <span>bit</span>
+            </div>
+        </div>
+
+        <!-- Signal Frequency -->
+        <div class="control-group">
+            <label for="freqSlider">Signal Frequency (Freq):</label>
+            <div class="slider-container">
+                <input type="range" id="freqSlider" name="freqSlider" min="20" max="90000" step="1" value="10000">
+                <input type="number" id="freqValueText" name="freqValueText" min="20" max="90000" step="1" value="10000">
+                <span>Hz</span>
+            </div>
+        </div>
+
+        <!-- Noise Shaping Order -->
+        <div class="control-group">
+            <label for="noiseOrderSlider">Noise Shaping Order:</label>
+             <div class="slider-container">
+                <input type="range" id="noiseOrderSlider" name="noiseOrderSlider" min="0" max="6" step="1" value="6">
+                <input type="number" id="noiseOrderValueText" name="noiseOrderValueText" min="0" max="6" step="1" value="6">
+                <span>order (0=OFF)</span>
+             </div>
+        </div>
+
+        <!-- Waveform Visibility -->
+        <div class="control-group">
+             <label>Show Waveforms:</label>
+             <div class="checkbox-group">
+                 <input type="checkbox" id="originalCheckbox" name="originalCheckbox" checked>
+                 <label for="originalCheckbox">Original (Blue)</label>
+                 <input type="checkbox" id="digitalCheckbox" name="digitalCheckbox" checked>
+                 <label for="digitalCheckbox">Digital (Yellow)</label>
+                 <input type="checkbox" id="reconstructedCheckbox" name="reconstructedCheckbox" checked>
+                 <label for="reconstructedCheckbox">Reconstructed (Red)</label>
+             </div>
+        </div>
+
+        <!-- LPF Cutoff Frequency -->
+        <div class="control-group">
+            <label for="lpfFreqSlider">LPF Cutoff Frequency:</label>
+            <div class="slider-container">
+                <input type="range" id="lpfFreqSlider" name="lpfFreqSlider" min="20000" max="90000" step="100" value="25000">
+                <input type="number" id="lpfFreqValueText" name="lpfFreqValueText" min="20000" max="90000" step="100" value="25000">
+                <span>Hz</span>
+            </div>
+        </div>
+
+        <!-- LPF Order -->
+        <div class="control-group">
+             <label for="lpfOrderSlider">LPF Order (Slope):</label>
+            <div class="slider-container">
+                 <input type="range" id="lpfOrderSlider" name="lpfOrderSlider" min="0" max="16" step="1" value="8">
+                 <input type="number" id="lpfOrderValueText" name="lpfOrderValueText" min="1" max="16" step="1" value="8">
+                 <span>order (-6dB/oct per order)</span>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="waveforms">
+        <h2>Time Domain Waveform</h2>
+        <canvas id="timeDomainCanvas"></canvas> <!-- Adjusted initial size -->
+        <h2>Frequency Domain (FFT)</h2>
+        <canvas id="frequencyDomainCanvas"></canvas> <!-- Adjusted initial size -->
+    </div>
+
+    <div class="app-info">
+        <ul>
+            <li>Interactive visualization of Delta-Sigma modulation and reconstruction.</li>
+            <li>Use the controls (sliders, radio buttons, and checkboxes) to modify simulation parameters and explore their effects.</li>
+            <li>Observe real-time updates on time-domain waveforms and frequency-domain spectrum.</li>
+        </ul>
+        <p>For detailed explanations and parameter guidance, see the <a href="index.html">manual</a>.</p>
+        <p>Copyright (c) <a href="https://github.com/Frieve-A/">Frieve</a>, 2025</p>
+    </div>
+
+    <script src="ui.js"></script>
+    <script src="dsp.js"></script>
+</body>
+</html> 

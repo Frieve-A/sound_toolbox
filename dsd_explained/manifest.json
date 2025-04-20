@@ -1,0 +1,21 @@
+{
+  "name": "DSD Explained",
+  "short_name": "DSD Explained",
+  "description": "Interactive visualization of Delta-Sigma modulation and reconstruction",
+  "start_url": "./dsd_explained.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "assets/icon_64x64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

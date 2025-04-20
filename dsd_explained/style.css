@@ -1,0 +1,121 @@
+body {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    font-family: sans-serif;
+    margin: 20px;
+}
+
+h1, h2 {
+    color: #569cd6;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+    margin: 0;
+}
+
+.controls {
+    background-color: #252526;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+    gap: 15px;
+}
+
+.control-group {
+    background-color: #333;
+    padding: 10px;
+    border-radius: 3px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #cccccc;
+}
+
+input[type="range"],
+input[type="number"],
+input[type="checkbox"],
+input[type="radio"] {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+input[type="number"] {
+    width: 60px; /* Adjust as needed */
+    background-color: #3c3c3c;
+    color: #d4d4d4;
+    border: 1px solid #555;
+    padding: 3px;
+}
+
+input[type="range"] {
+    width: calc(100% - 75px); /* Adjust based on number input width */
+}
+
+.slider-container, .radio-group, .checkbox-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping for radio/checkbox */
+}
+
+.radio-group label, .checkbox-group label {
+    margin-right: 15px; /* Spacing between radio/checkbox options */
+    font-weight: normal;
+}
+
+.fs-label {
+    cursor: pointer;
+    padding: 3px 6px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background-color: #3c3c3c;
+}
+
+input[type="radio"]:checked + .fs-label {
+    background-color: #569cd6;
+    color: #1e1e1e;
+    border-color: #569cd6;
+}
+
+
+.waveforms {
+    background-color: #252526;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+canvas {
+    display: block; /* Remove extra space below canvas */
+    width: 100%;   /* Make canvas responsive */
+    height: 256px; /* Fixed vertical size */
+    background-color: #111; /* Dark background for canvas */
+    border: 1px solid #444;
+    margin-top: 10px;
+    margin-bottom: 20px; /* Add space between canvases */
+}
+
+span {
+    margin-left: 5px;
+    font-size: 0.9em;
+    color: #aaaaaa;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    margin-bottom: 20px;
+}
+
+.header a, .app-info a {
+    color: #808080;
+    text-decoration: none;
+}
+
+.header a:hover, .app-info a:hover {
+    color: #a0a0a0;
+}
