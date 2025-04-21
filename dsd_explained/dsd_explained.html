@@ -29,14 +29,22 @@
         <div class="control-group">
             <label>Over Sampling:</label>
             <div class="radio-group">
-                <input type="radio" id="fs64" name="samplingFrequency" value="64" checked>
-                <label for="fs64" class="fs-label" data-value="64">64</label>
-                <input type="radio" id="fs128" name="samplingFrequency" value="128">
-                <label for="fs128" class="fs-label" data-value="128">128</label>
-                <input type="radio" id="fs256" name="samplingFrequency" value="256">
-                <label for="fs256" class="fs-label" data-value="256">256</label>
-                <input type="radio" id="fs512" name="samplingFrequency" value="512">
-                <label for="fs512" class="fs-label" data-value="512">512</label>
+                <span class="radio-option">
+                    <input type="radio" id="fs64" name="samplingFrequency" value="64" checked>
+                    <label for="fs64" class="fs-label" data-value="64">64</label>
+                </span>
+                <span class="radio-option">
+                    <input type="radio" id="fs128" name="samplingFrequency" value="128">
+                    <label for="fs128" class="fs-label" data-value="128">128</label>
+                </span>
+                <span class="radio-option">
+                    <input type="radio" id="fs256" name="samplingFrequency" value="256">
+                    <label for="fs256" class="fs-label" data-value="256">256</label>
+                </span>
+                <span class="radio-option">
+                    <input type="radio" id="fs512" name="samplingFrequency" value="512">
+                    <label for="fs512" class="fs-label" data-value="512">512</label>
+                </span>
             </div>
         </div>
 
@@ -52,7 +60,7 @@
 
         <!-- Signal Frequency -->
         <div class="control-group">
-            <label for="freqSlider">Signal Frequency (Freq):</label>
+            <label for="freqSlider">Signal Frequency:</label>
             <div class="slider-container">
                 <input type="range" id="freqSlider" name="freqSlider" min="20" max="90000" step="1" value="10000">
                 <input type="number" id="freqValueText" name="freqValueText" min="20" max="90000" step="1" value="10000">
@@ -74,12 +82,18 @@
         <div class="control-group">
              <label>Show Waveforms:</label>
              <div class="checkbox-group">
-                 <input type="checkbox" id="originalCheckbox" name="originalCheckbox" checked>
-                 <label for="originalCheckbox">Original (Blue)</label>
-                 <input type="checkbox" id="digitalCheckbox" name="digitalCheckbox" checked>
-                 <label for="digitalCheckbox">Digital (Yellow)</label>
-                 <input type="checkbox" id="reconstructedCheckbox" name="reconstructedCheckbox" checked>
-                 <label for="reconstructedCheckbox">Reconstructed (Red)</label>
+                 <span class="checkbox-option">
+                     <input type="checkbox" id="originalCheckbox" name="originalCheckbox" checked>
+                     <label for="originalCheckbox">Original (Blue)</label>
+                 </span>
+                 <span class="checkbox-option">
+                     <input type="checkbox" id="digitalCheckbox" name="digitalCheckbox" checked>
+                     <label for="digitalCheckbox">Digital (Yellow)</label>
+                 </span>
+                 <span class="checkbox-option">
+                     <input type="checkbox" id="reconstructedCheckbox" name="reconstructedCheckbox" checked>
+                     <label for="reconstructedCheckbox">Reconstructed (Red)</label>
+                 </span>
              </div>
         </div>
 

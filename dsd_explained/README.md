@@ -3,6 +3,8 @@
 ## Overview
 DSD Explained is an interactive web application that animates the process of ΔΣ modulation and reconstruction of audio waveforms at a slowed-down speed for easy understanding.
 
+![Screenshot](assets/screen_shot.png)
+
 ## Launch the App
 [Launch the App](./dsd_explained.html)
 
@@ -57,6 +59,8 @@ Defines the steepness of the reconstruction filter. Higher order yields steeper 
 
 ## 概要
 DSD Explained は、波形をΔΣ変調および再構築するプロセスを、学習しやすいようにスローモーションでアニメーション表示するインタラクティブなウェブアプリケーションです。
+
+![Screenshot](assets/screen_shot.png)
 
 ## アプリを起動
 [アプリを起動](./dsd_explained.html)

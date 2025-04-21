@@ -39,6 +39,14 @@ A visual aid for learning digital sampling [> Open App](https://frieve-a.github.
 
 ---
 
+[DSD Explained](dsd_explained/README.md)
+
+An interactive web application that slowly animates the process of ΔΣ modulation and audio waveform reconstruction in DSD for easy understanding. [> Open App](https://frieve-a.github.io/sound_toolbox/dsd_explained/dsd_explained.html)
+
+![Screenshot](dsd_explained/assets/screen_shot.png)
+
+---
+
 ブラウザ上で動作する音に関連するツールです。
 
 ---
@@ -72,3 +80,11 @@ A visual aid for learning digital sampling [> Open App](https://frieve-a.github.
 デジタルサンプリングを直感的に理解するためのビジュアルな教材 [> Open App](https://frieve-a.github.io/sound_toolbox/digital_sampling_visualizer/digital_sampling_visualizer_ja.html)
 
 ![Screenshot](digital_sampling_visualizer/digital_sampling_visualizer_ja.png)
+
+---
+
+[DSD Explained](dsd_explained/README.md)
+
+DSDで波形をΔΣ変調および再構築するプロセスを、学習しやすいようにスローモーションでアニメーション表示 [> Open App](https://frieve-a.github.io/sound_toolbox/dsd_explained/dsd_explained.html)
+
+![Screenshot](dsd_explained/assets/screen_shot.png)

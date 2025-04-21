@@ -30,7 +30,7 @@ h1, h2 {
 
 label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: bold;
     color: #cccccc;
 }
@@ -39,8 +39,8 @@ input[type="range"],
 input[type="number"],
 input[type="checkbox"],
 input[type="radio"] {
-    margin-right: 5px;
-    vertical-align: middle;
+    margin-right: 10px;
+    margin-bottom: 5px;
 }
 
 input[type="number"] {
@@ -68,10 +68,7 @@ input[type="range"] {
 
 .fs-label {
     cursor: pointer;
-    padding: 3px 6px;
-    border: 1px solid #555;
-    border-radius: 3px;
-    background-color: #3c3c3c;
+    padding: 0px 6px;
 }
 
 input[type="radio"]:checked + .fs-label {
@@ -80,6 +77,14 @@ input[type="radio"]:checked + .fs-label {
     border-color: #569cd6;
 }
 
+/* Prevent breaking between radio/checkbox input and its label within each option */
+.radio-group .radio-option,
+.checkbox-group .checkbox-option {
+    display: inline-flex; /* group input and label inline */
+    align-items: center;   /* center input and label vertically */
+    white-space: nowrap;   /* prevent break inside each option */
+    margin-right: 15px;    /* spacing between separate options */
+}
 
 .waveforms {
     background-color: #252526;
