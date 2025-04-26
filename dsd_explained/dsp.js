@@ -60,7 +60,6 @@
      *  - inputSample …  range [‑1, +1]
      *  - adBits      …  1‑bit (DSD) to 6‑bit PCM
      *  - noiseOrder  …  0‑7 (0 disables noise shaping)
-     *  - osr         …  64 / 128 / 256 / 512 (not used after fix)
      */
     deltaSigmaModulate(inputSample, adBits, noiseOrder, osr) {
         // Require NTF coefficients loaded from JSON
@@ -104,6 +103,13 @@
         const y = yPred + b[0] * e; // true shaped noise
         eH.unshift(e); if (eH.length > b.length - 1) eH.pop();
         yH.unshift(y); if (yH.length > a.length - 1) yH.pop();
+
+        // Check for instability based on quantizer input magnitude
+        const INSTABILITY_THRESHOLD = 10.0;
+        if (Math.abs(u) > INSTABILITY_THRESHOLD) {
+            return NaN; // Return NaN to signal instability
+        }
+
         return q;
     },
 
@@ -263,9 +269,6 @@ const App = {
     currentParams: {}, // Holds parameters read from UI
     needsCoefficientUpdate: true, // Flag to recalculate filters
     needsStateReset: true, // Flag to reset filter/modulator states
-    // Simulation debug counters
-    simDebugCount: 0,
-    simDebugMax: 5,
 
     // --- Buffers ---
     timeDomainBuffer: [], // Circular buffer for time domain display {original, digital, reconstructed}
@@ -330,7 +333,9 @@ const App = {
 
     updateState: function() {
         const newParams = UI.getControlValues();
-        if (!newParams) return; // UI not ready
+        if (!newParams) {
+            return; // Exit early if UI values are not ready
+        }
 
         // Detect parameter changes via strict comparison
         let fsChanged = this.currentParams.fsMultiplier !== newParams.fsMultiplier;
@@ -377,11 +382,13 @@ const App = {
                 if (cfg) {
                     DSP.ntfNumCoeffs = cfg.num;
                     DSP.ntfDenCoeffs = cfg.den;
-                    console.log(`NTF loaded: order=${this.currentParams.noiseOrder}, osr=${this.currentParams.fsMultiplier}, bits=${this.currentParams.adBits} (b=${cfg.num.length}, a=${cfg.den.length})`);
                 } else {
                     DSP.ntfNumCoeffs = null;
                     DSP.ntfDenCoeffs = null;
                 }
+            } else {
+                 DSP.ntfNumCoeffs = null;
+                 DSP.ntfDenCoeffs = null;
             }
             // Initialize modulator state after NTF coeffs are loaded
             DSP.resetModulatorState(this.currentParams.noiseOrder);
@@ -464,10 +471,6 @@ const App = {
     },
 
     simulationStep: function() {
-        // Log first few simulation steps
-        if (this.simDebugCount < this.simDebugMax) {
-            console.log(`simulationStep #${this.simDebugCount}: time=${this.simulationTime.toFixed(6)}`);
-        }
         const currentSamplingFrequency = this.BASE_SAMPLING_RATE * this.currentParams.fsMultiplier;
         if (currentSamplingFrequency <= 0) return;
 
@@ -475,29 +478,41 @@ const App = {
 
         // Generate original analog sample
         const originalSample = DSP.generateSignal(this.simulationPhase) * 0.5;
-        // Log originalSample
-        if (this.simDebugCount < this.simDebugMax) {
-            console.log(` originalSample=${originalSample.toFixed(5)}`);
-        }
         // ΔΣ modulation (or bypass)
         const digitalSample = this.debugBypassDeltaSigma
             ? originalSample
             : DSP.deltaSigmaModulate(originalSample, this.currentParams.adBits, this.currentParams.noiseOrder, this.currentParams.fsMultiplier);
-        // Log digitalSample
-        if (this.simDebugCount < this.simDebugMax) {
-            console.log(` digitalSample=${digitalSample.toFixed(5)}`);
-            this.simDebugCount++;
-        }
 
+        // Check for numerical instability before storing/using values
+        const checkFiniteAndTriggerReset = (val, name) => {
+            // Check for NaN (returned by deltaSigmaModulate on instability) or non-finite values
+            if (isNaN(val) || !Number.isFinite(val)) {
+                // Set flag to request a full state reset
+                this.needsStateReset = true;
+                // Schedule updateState on the next frame to perform the reset
+                requestAnimationFrame(() => {
+                    if (this.needsStateReset) { // Check flag again in case it was already handled
+                         this.updateState();
+                    }
+                });
+                return false; // Indicate instability
+            }
+            return true; // Indicate stable
+        };
+
+        // Check key signals and stop if unstable
+        // Note: digitalSample check now catches instability from deltaSigmaModulate returning NaN
+        if (!checkFiniteAndTriggerReset(digitalSample, 'digitalSample')) return;
         // Apply reconstruction LPF (or bypass)
         let reconstructedSample = this.debugBypassLPF
             ? digitalSample
             : DSP.applyLPF(digitalSample);
-        if (!isFinite(reconstructedSample)) reconstructedSample = 0;
-        // Debug log reconstructed sample
-        if (this.simDebugCount < this.simDebugMax) {
-            console.log(` reconstructedSample=${reconstructedSample.toFixed(5)}`);
-        }
+        // Check reconstructed sample AFTER LPF
+        if (!checkFiniteAndTriggerReset(reconstructedSample, 'reconstructedSample')) return;
+
+        // Apply downsampling filter ONLY AFTER checking reconstructedSample is stable
+        const filteredForDownsample = DSP.applyDownsamplingFilter(reconstructedSample);
+        if (!checkFiniteAndTriggerReset(filteredForDownsample, 'filteredForDownsample')) return;
 
         // Store for Time Domain Display
         const displayBufferSize = UI.timeDomainCanvas ? UI.timeDomainCanvas.width : 1000;
@@ -506,17 +521,9 @@ const App = {
             this.timeDomainBuffer.shift(); // Remove oldest sample
         }
 
-        // 5. Downsampling for FFT
-        // Apply anti-aliasing filter FIRST
-        const filteredForDownsample = DSP.applyDownsamplingFilter(reconstructedSample);
-        // Debug log downsample filter output
-        if (this.simDebugCount < this.simDebugMax) {
-            console.log(` filteredForDownsample=${filteredForDownsample.toFixed(5)}`);
-        }
-
         // Decimate
         if (this.downsampleCounter % DSP.decimationFactor === 0) {
-            this.fftInputBuffer.push(filteredForDownsample);
+            this.fftInputBuffer.push(filteredForDownsample); // Use the filtered value from above
             // Keep FFT buffer at required size
             if (this.fftInputBuffer.length > this.FFT_SIZE) {
                 this.fftInputBuffer.shift();
