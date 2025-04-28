@@ -295,6 +295,17 @@ let context = {
   restoredFromURI: false
 };
 
+// Function to reset test results in the context
+function resetResults() {
+  context.name = "";
+  context.testType = "";
+  context.correctCount = 0;
+  context.totalCount = 0;
+  context.startTime = 0;
+  context.endTime = 0;
+  context.timeSpent = 0;
+}
+
 function stopAudio() {
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
@@ -327,10 +338,11 @@ const testResultArea = document.getElementById("testResultArea");
 userNameInput.addEventListener("input", () => {
   localName = userNameInput.value; // store typed name locally only
   // Do not put name into context => context.name = "";
-  updateURI(); // updates URI without name
   if (!testResultArea.classList.contains("hidden")) {
     testResultArea.classList.add("hidden");
+    resetResults(); // Clear result data before updating URI
   }
+  updateURI(); // updates URI without name or results
 });
 
 uriHighInput.addEventListener("input", handleConfigChange);
@@ -351,10 +363,11 @@ function handleConfigChange() {
   context.uriLow = uriLowInput.value.trim();
   context.testCount = parseInt(testCountInput.value, 10) || 1;
 
-  updateURI();
   if (!testResultArea.classList.contains("hidden")) {
     testResultArea.classList.add("hidden");
+    resetResults(); // Clear result data before updating URI
   }
+  updateURI(); // updates URI without name or results
 }
 
 document.getElementById("startABPrefBtn").addEventListener("click", () => {
