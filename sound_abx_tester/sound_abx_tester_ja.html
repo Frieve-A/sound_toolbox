@@ -101,7 +101,7 @@
       text-align: center;
       min-height: 1.5em;
       margin-top: 1rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.1rem;
     }
     #testResultArea {
       margin-top: 40px;
@@ -213,6 +213,7 @@
       <button id="abprefListB">Bを再生</button>
     </div>
     <div class="listening-indicator" id="abprefCurrentlyListening"></div>
+    <div id="abprefSampleRate" style="text-align: center; margin-bottom: 1rem; font-size: 0.9rem; color: #aaa;"></div>
     <p>どちらがより良い音質ですか？</p>
     <div class="test-buttons">
       <button id="abprefVoteA">Aに投票</button>
@@ -236,6 +237,7 @@
       <button id="abxListX">Xを再生</button>
     </div>
     <div class="listening-indicator" id="abxCurrentlyListening"></div>
+    <div id="abxSampleRate" style="text-align: center; margin-bottom: 1rem; font-size: 0.9rem; color: #aaa;"></div>
     <p>XはAとBのどちらと同じ音声か判定してください</p>
     <div class="test-buttons">
       <button id="abxVoteA">XはAと同じ</button>
@@ -274,7 +276,6 @@ function fromBase64(str) {
 }
 
 // Audio
-let audioPlayer = new Audio();
 let currentlyPlayingButtonId = null;
 
 // Local variable for name typed in the config
@@ -295,20 +296,36 @@ let context = {
   restoredFromURI: false
 };
 
-// Function to reset test results in the context
-function resetResults() {
-  context.name = "";
-  context.testType = "";
-  context.correctCount = 0;
-  context.totalCount = 0;
-  context.startTime = 0;
-  context.endTime = 0;
-  context.timeSpent = 0;
+// Audio
+let audioContext = null;
+let audioSource = null;
+
+function initAudioContext() {
+  // Initialize AudioContext if not exists
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Display sample rate
+    const sampleRateText = `オーディオデバイスのサンプリングレート: ${audioContext.sampleRate} Hz`;
+    const abprefSampleRate = document.getElementById("abprefSampleRate");
+    const abxSampleRate = document.getElementById("abxSampleRate");
+    
+    if (abprefSampleRate) {
+      abprefSampleRate.textContent = sampleRateText;
+    }
+    
+    if (abxSampleRate) {
+      abxSampleRate.textContent = sampleRateText;
+    }
+  }
 }
 
 function stopAudio() {
-  audioPlayer.pause();
-  audioPlayer.currentTime = 0;
+  // Stop audio source if exists
+  if (audioSource) {
+    audioSource.stop();
+    audioSource = null;
+  }
   currentlyPlayingButtonId = null;
 }
 
@@ -338,11 +355,10 @@ const testResultArea = document.getElementById("testResultArea");
 userNameInput.addEventListener("input", () => {
   localName = userNameInput.value; // store typed name locally only
   // Do not put name into context => context.name = "";
+  updateURI(); // updates URI without name
   if (!testResultArea.classList.contains("hidden")) {
     testResultArea.classList.add("hidden");
-    resetResults(); // Clear result data before updating URI
   }
-  updateURI(); // updates URI without name or results
 });
 
 uriHighInput.addEventListener("input", handleConfigChange);
@@ -363,11 +379,10 @@ function handleConfigChange() {
   context.uriLow = uriLowInput.value.trim();
   context.testCount = parseInt(testCountInput.value, 10) || 1;
 
+  updateURI();
   if (!testResultArea.classList.contains("hidden")) {
     testResultArea.classList.add("hidden");
-    resetResults(); // Clear result data before updating URI
   }
-  updateURI(); // updates URI without name or results
 }
 
 document.getElementById("startABPrefBtn").addEventListener("click", () => {
@@ -451,15 +466,27 @@ function handleABPrefPlayStop(btn) {
     currentlyPlayingButtonId = null;
   } else {
     stopAudio();
-    if (btn === "A") {
-      audioPlayer.src = abprefCurrentHigherIsA ? context.uriHigh : context.uriLow;
-      abprefCurrentlyListening.textContent = "Aを再生しています";
-    } else {
-      audioPlayer.src = abprefCurrentHigherIsA ? context.uriLow : context.uriHigh;
-      abprefCurrentlyListening.textContent = "Bを再生しています";
-    }
-    audioPlayer.play();
-    currentlyPlayingButtonId = btn;
+    initAudioContext();
+    
+    const fileUrl = btn === "A" 
+      ? (abprefCurrentHigherIsA ? context.uriHigh : context.uriLow)
+      : (abprefCurrentHigherIsA ? context.uriLow : context.uriHigh);
+    
+    fetch(fileUrl)
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(audioContext.destination);
+        audioSource.start();
+        abprefCurrentlyListening.textContent = btn === "A" ? "Aを再生しています" : "Bを再生しています";
+        currentlyPlayingButtonId = btn;
+      })
+      .catch(e => {
+        console.error('Error loading audio file:', e);
+        abprefCurrentlyListening.textContent = "オーディオの再生中にエラーが発生しました";
+      });
   }
 }
 
@@ -502,6 +529,11 @@ function updateABXUI() {
   currentlyPlayingButtonId = null;
   abxAIsHigh = Math.random() < 0.5;
   abxXisA = Math.random() < 0.5;
+  
+  // Initialize audio context if needed to display sample rate
+  if (!audioContext) {
+    initAudioContext();
+  }
 }
 
 abxListA.addEventListener("click", () => {
@@ -536,22 +568,38 @@ function handleABXPlayStop(btn) {
     currentlyPlayingButtonId = null;
   } else {
     stopAudio();
+    initAudioContext();
+    
+    let fileUrl;
     if (btn === "A") {
-      audioPlayer.src = abxAIsHigh ? context.uriHigh : context.uriLow;
+      fileUrl = abxAIsHigh ? context.uriHigh : context.uriLow;
       abxCurrentlyListening.textContent = "Aを再生しています";
     } else if (btn === "B") {
-      audioPlayer.src = abxAIsHigh ? context.uriLow : context.uriHigh;
+      fileUrl = abxAIsHigh ? context.uriLow : context.uriHigh;
       abxCurrentlyListening.textContent = "Bを再生しています";
     } else {
       if (abxXisA) {
-        audioPlayer.src = abxAIsHigh ? context.uriHigh : context.uriLow;
+        fileUrl = abxAIsHigh ? context.uriHigh : context.uriLow;
       } else {
-        audioPlayer.src = abxAIsHigh ? context.uriLow : context.uriHigh;
+        fileUrl = abxAIsHigh ? context.uriLow : context.uriHigh;
       }
       abxCurrentlyListening.textContent = "Xを再生しています";
     }
-    audioPlayer.play();
-    currentlyPlayingButtonId = btn;
+    
+    fetch(fileUrl)
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(audioContext.destination);
+        audioSource.start();
+        currentlyPlayingButtonId = btn;
+      })
+      .catch(e => {
+        console.error('Error loading audio file:', e);
+        abxCurrentlyListening.textContent = "オーディオの再生中にエラーが発生しました";
+      });
   }
 }
 
