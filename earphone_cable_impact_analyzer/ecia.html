@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earphone Cable Impact Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Earphone Cable Impact Analyzer</h1>
+            <p>Frequency Response Analysis Tool</p>
+            <p>Visualizes the impact of amplifier output impedance and cable parameters on earphone frequency response</p>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <div class="controls-header">
+                    <button class="reset-btn" onclick="resetAmplifierCableParams()">Reset</button>
+                </div>
+                <div class="control-group">
+                    <h3>Amplifier & Cable</h3>
+                    <div class="parameter">
+                        <label for="zout">Output Impedance (Ω)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="zout" min="0" max="20" step="0.1" value="0.5">
+                            <span class="parameter-value" id="zout-value">0.5</span>
+                        </div>
+                    </div>
+                    <div class="parameter">
+                        <label for="rcable">Cable DC Resistance (Ω)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="rcable" min="0" max="2" step="0.01" value="0.3">
+                            <span class="parameter-value" id="rcable-value">0.30</span>
+                        </div>
+                    </div>
+                    <div class="parameter">
+                        <label for="Lcable">Cable Inductance (µH)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="Lcable" min="0" max="5" step="0.1" value="0.5">
+                            <span class="parameter-value" id="Lcable-value">0.5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Earphone Parameters</h3>
+                    <div class="parameter">
+                        <label for="Lvc">Voice Coil Inductance (mH)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="Lvc" min="0.01" max="2" step="0.01" value="0.20">
+                            <span class="parameter-value" id="Lvc-value">0.20</span>
+                        </div>
+                    </div>
+                    <div class="parameter">
+                        <label for="Zmin">Base Impedance (Ω)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="Zmin" min="4" max="64" step="1" value="16">
+                            <span class="parameter-value" id="Zmin-value">16</span>
+                        </div>
+                    </div>
+                    
+                    <div class="resonances-section">
+                        <h4>Resonances</h4>
+                        <div id="resonances-container"></div>
+                        <button class="add-resonance-btn" onclick="addResonance()">Add Resonance</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="plots">
+                <div class="plot-container">
+                    <div class="plot-header">
+                        <h3 class="plot-title">Impedance vs Frequency</h3>
+                        <div class="plot-controls">
+                            <label for="impedance-scale">Max Z-axis: </label>
+                            <select id="impedance-scale">
+                                <option value="auto">Auto</option>
+                                <option value="100">100 Ω</option>
+                                <option value="200">200 Ω</option>
+                                <option value="500">500 Ω</option>
+                            </select>
+                            <button class="reset-btn" onclick="resetImpedanceView()">Reset</button>
+                        </div>
+                    </div>
+                    <div class="plot-area">
+                        <div id="impedance-plot"></div>
+                    </div>
+                </div>
+
+                <div class="plot-container">
+                    <div class="plot-header">
+                        <h3 class="plot-title">Frequency Response (Relative)</h3>
+                        <div class="plot-controls">
+                            <label for="response-scale">Y-axis range: </label>
+                            <select id="response-scale">
+                                <option value="0.1">±0.1 dB</option>
+                                <option value="1" selected>±1 dB</option>
+                                <option value="10">±10 dB</option>
+                            </select>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="show-phase">
+                                <label for="show-phase">Show Phase</label>
+                            </div>
+                            <button class="reset-btn" onclick="resetResponseView()">Reset</button>
+                        </div>
+                    </div>
+                    <div class="plot-area">
+                        <div id="response-plot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-info">
+        <ul>
+            <li>Analyze the impact of amplifier output impedance and cable parameters on earphone frequency response.</li>
+            <li>Use the sliders to adjust amplifier, cable, and earphone parameters and observe real-time changes in impedance and frequency response.</li>
+            <li>Compare frequency response with and without cable effects to understand their impact.</li>
+            <li>Add multiple resonances to model complex earphone impedance characteristics.</li>
+            <li>Visualize both magnitude and phase response across the audio frequency range.</li>
+            <li>Anomaly indicators (red values) highlight potentially problematic parameter combinations.</li>
+        </ul>
+        <p>Copyright (c) <a href="https://github.com/Frieve-A/">Frieve</a>, 2025</p>
+    </div>
+
+    <script>
+        /* ---------- constants ---------- */
+        const F_MIN = 20;
+        const F_MAX = 20000;
+        const POINTS = 1000;
+        const TWO_PI = 2 * Math.PI;
+        const MAX_RESONANCES = 10;
+
+        /* logarithmically spaced frequency axis */
+        const frequencies = Float64Array.from(
+            { length: POINTS },
+            (_, i) => F_MIN * Math.pow(F_MAX / F_MIN, i / (POINTS - 1))
+        );
+
+        /* ---------- dark theme for Plotly ---------- */
+        const darkTheme = {
+            plot_bgcolor: '#1a202c',
+            paper_bgcolor: '#1a202c',
+            font: { color: '#e2e8f0', family: 'system-ui, -apple-system, sans-serif' },
+            colorway: ['#4299e1', '#f56565', '#48bb78', '#ed8936', '#9f7aea', '#38b2ac', '#f093fb'],
+            xaxis: {
+                gridcolor: '#2d3748',
+                linecolor: '#4a5568',
+                tickcolor: '#4a5568',
+                zerolinecolor: '#4a5568'
+            },
+            yaxis: {
+                gridcolor: '#2d3748',
+                linecolor: '#4a5568',
+                tickcolor: '#4a5568',
+                zerolinecolor: '#4a5568'
+            }
+        };
+
+        /* ---------- complex number helper ---------- */
+        class Complex {
+            constructor(real, imag = 0) {
+                this.real = real;
+                this.imag = imag;
+            }
+            add(b) {
+                return new Complex(this.real + b.real, this.imag + b.imag);
+            }
+            multiply(b) {
+                return new Complex(
+                    this.real * b.real - this.imag * b.imag,
+                    this.real * b.imag + this.imag * b.real
+                );
+            }
+            divide(b) {
+                let denom = b.real * b.real + b.imag * b.imag;
+                if (denom < 1e-12) denom = 1e-12;                 // avoid NaN
+                return new Complex(
+                    (this.real * b.real + this.imag * b.imag) / denom,
+                    (this.imag * b.real - this.real * b.imag) / denom
+                );
+            }
+            magnitude() {
+                return Math.hypot(this.real, this.imag);
+            }
+            phase() {
+                return Math.atan2(this.imag, this.real) * 180 / Math.PI;
+            }
+        }
+
+        /* ---------- global state ---------- */
+        let resonances = [{ fres: 120, Q: 2.0, Zpeak: 48 }];
+
+        /* ---------- utility ---------- */
+        function powerAverage(dBArray) {
+            const sum = dBArray.reduce((acc, v) => acc + Math.pow(10, v / 10), 0);
+            return 10 * Math.log10(sum / dBArray.length);
+        }
+
+        /* ---------- impedance model ---------- */
+        function calcZload(f, Lvc_H, Zmin, resArr) {
+            const omega = TWO_PI * f;
+            let z = new Complex(Zmin, omega * Lvc_H);
+
+            for (const r of resArr) {
+                const ratio1 = f / r.fres;
+                const ratio2 = r.fres / f;
+                const denom = new Complex(1, r.Q * (ratio1 - ratio2));
+                const peakDelta = r.Zpeak - Zmin;
+                const term = new Complex(peakDelta, 0).divide(denom);
+                z = z.add(term);
+            }
+            return z;
+        }
+
+        /* ---------- frequency response ---------- */
+        function calculateFrequencyResponse(params) {
+            const {
+                zout, rcable, Lcable_H, Lvc_H, Zmin, resArr
+            } = params;
+
+            const N = frequencies.length;
+            const totalGain = new Float64Array(N);
+            const noCableGain = new Float64Array(N);
+            const cableEffect = new Float64Array(N);
+            const phase = new Float64Array(N);
+            const impedance = new Float64Array(N);
+
+            for (let i = 0; i < N; i++) {
+                const f = frequencies[i];
+                const omega = TWO_PI * f;
+
+                const Zload = calcZload(f, Lvc_H, Zmin, resArr);
+                impedance[i] = Zload.magnitude();
+
+                const ZtWith = new Complex(
+                    zout + rcable + Zload.real,
+                    omega * Lcable_H + Zload.imag
+                );
+                const Hwith = Zload.divide(ZtWith);
+                const dBwith = 20 * Math.log10(Hwith.magnitude());
+                const phaseDeg = Hwith.phase();
+
+                const ZtNoCable = new Complex(
+                    zout + Zload.real,
+                    Zload.imag
+                );
+                const Hno = Zload.divide(ZtNoCable);
+                const dBno = 20 * Math.log10(Hno.magnitude());
+
+                totalGain[i] = dBwith;
+                noCableGain[i] = dBno;
+                cableEffect[i] = dBwith - dBno;
+                phase[i] = phaseDeg;
+            }
+
+            const totalAvg = powerAverage(totalGain);
+            const noCableAvg = powerAverage(noCableGain);
+            const cableAvg = powerAverage(cableEffect);
+
+            for (let i = 0; i < N; i++) {
+                totalGain[i] -= totalAvg;
+                noCableGain[i] -= noCableAvg;
+                cableEffect[i] -= cableAvg;
+            }
+
+            return {
+                totalGain, noCableGain, cableEffect, phase, impedance,
+                averages: { totalGain: totalAvg, noCableGain: noCableAvg, cableEffect: cableAvg }
+            };
+        }
+
+        /* ---------- slider helpers ---------- */
+        function updateDisplay(id, val, unit = '') {
+            const el = document.getElementById(`${id}-value`);
+            el.textContent = (val < 1 ? val.toFixed(2) : val.toFixed(1)) + unit;
+            el.classList.remove('anomaly');
+            if ((id === 'rcable' || id === 'zout') && val >= 1) el.classList.add('anomaly');
+            if (id === 'Zmin' && val <= 8) el.classList.add('anomaly');
+            if ((id === 'Lcable' || id === 'Lvc') && val >= 1) el.classList.add('anomaly');
+        }
+
+        function checkZratio() {
+            const Zmin = parseFloat(document.getElementById('Zmin').value);
+            const Zmax = resonances.reduce((m, r) => Math.max(m, r.Zpeak), Zmin);
+            const anomaly = Zmax / Zmin >= 5;
+            document.querySelectorAll('.resonance-controls .parameter-value').forEach(el => {
+                if (el.id.includes('Zpeak')) {
+                    el.classList.toggle('anomaly', anomaly);
+                }
+            });
+        }
+
+        /* ---------- resonance controls ---------- */
+        function addResonance() {
+            if (resonances.length >= MAX_RESONANCES) return;
+            resonances.push({ fres: 120, Q: 2.0, Zpeak: 48 });
+            renderResonanceControls();
+            schedulePlotUpdate();
+            scheduleURLUpdate();
+        }
+
+        function removeResonance(idx) {
+            resonances.splice(idx, 1);
+            renderResonanceControls();
+            schedulePlotUpdate();
+            scheduleURLUpdate();
+        }
+
+        function updateRes(idx, prop, val) {
+            resonances[idx][prop] = parseFloat(val);
+            updateDisplay(`${prop}-${idx}`, parseFloat(val));
+            checkZratio();
+            schedulePlotUpdate();
+            scheduleURLUpdate();
+        }
+
+        function setupResListeners() {
+            resonances.forEach((_, idx) => {
+                ['fres', 'Q', 'Zpeak'].forEach(prop => {
+                    const slider = document.getElementById(`${prop}-${idx}`);
+                    if (slider) {
+                        slider.addEventListener('input', () => updateRes(idx, prop, slider.value));
+                    }
+                });
+            });
+        }
+
+        function renderResonanceControls() {
+            const c = document.getElementById('resonances-container');
+            c.innerHTML = '';
+            resonances.forEach((r, idx) => {
+                const div = document.createElement('div');
+                div.className = 'resonance-controls';
+                div.innerHTML = `
+                    <div class="resonance-header">
+                        <span class="resonance-title">Resonance ${idx + 1}</span>
+                        <button class="remove-btn" onclick="removeResonance(${idx})">Remove</button>
+                    </div>
+                    <div class="parameter">
+                        <label for="fres-${idx}">Frequency (Hz)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="fres-${idx}" min="20" max="20000" step="10" value="${r.fres}">
+                            <span class="parameter-value" id="fres-${idx}-value">${r.fres}</span>
+                        </div>
+                    </div>
+                    <div class="parameter">
+                        <label for="Q-${idx}">Q Factor</label>
+                        <div class="parameter-input">
+                            <input type="range" id="Q-${idx}" min="0.5" max="10" step="0.1" value="${r.Q}">
+                            <span class="parameter-value" id="Q-${idx}-value">${r.Q.toFixed(1)}</span>
+                        </div>
+                    </div>
+                    <div class="parameter">
+                        <label for="Zpeak-${idx}">Peak Impedance (Ω)</label>
+                        <div class="parameter-input">
+                            <input type="range" id="Zpeak-${idx}" min="16" max="116" step="1" value="${r.Zpeak}">
+                            <span class="parameter-value" id="Zpeak-${idx}-value">${r.Zpeak}</span>
+                        </div>
+                    </div>
+                `;
+                c.appendChild(div);
+            });
+            setupResListeners();
+        }
+
+        /* ---------- plot management ---------- */
+        let plotsInitialized = false;
+        let plotLock = false;
+        let urlUpdateTimer = null;
+
+        function getParams() {
+            return {
+                zout: parseFloat(document.getElementById('zout').value),
+                rcable: parseFloat(document.getElementById('rcable').value),
+                Lcable_H: parseFloat(document.getElementById('Lcable').value) * 1e-6,
+                Lvc_H: parseFloat(document.getElementById('Lvc').value) * 1e-3,
+                Zmin: parseFloat(document.getElementById('Zmin').value),
+                resArr: resonances
+            };
+        }
+
+        function makeImpedanceLayout() {
+            const scale = document.getElementById('impedance-scale').value;
+            return {
+                ...darkTheme,
+                height: 370,
+                xaxis: { ...darkTheme.xaxis, title: 'Frequency (Hz)', type: 'log', range: [Math.log10(F_MIN), Math.log10(F_MAX)] },
+                yaxis: { ...darkTheme.yaxis, title: 'Impedance (Ω)', range: scale === 'auto' ? null : [0, parseInt(scale)] },
+                margin: { t: 15, r: 15, b: 70, l: 70 },
+                showlegend: false,
+                hovermode: 'x unified'
+            };
+        }
+
+        function makeResponseLayout(showPhase, rangeY) {
+            const layout = {
+                ...darkTheme,
+                height: 370,
+                xaxis: { ...darkTheme.xaxis, title: 'Frequency (Hz)', type: 'log', range: [Math.log10(F_MIN), Math.log10(F_MAX)] },
+                yaxis: { ...darkTheme.yaxis, title: 'Magnitude (dB)', range: [-rangeY, rangeY] },
+                margin: { t: 15, r: showPhase ? 80 : 15, b: 70, l: 70 },
+                hovermode: 'x unified',
+                showlegend: true,
+                legend: {
+                    x: 0.02, y: 0.98,
+                    bgcolor: 'rgba(45,55,72,0.9)',
+                    bordercolor: '#4a5568',
+                    borderwidth: 1
+                }
+            };
+            if (showPhase) {
+                layout.yaxis2 = { ...darkTheme.yaxis, title: 'Phase (°)', overlaying: 'y', side: 'right', range: [-180, 180] };
+            }
+            return layout;
+        }
+
+        function makeResponseTraces(res, showPhase) {
+            const traces = [
+                {
+                    x: frequencies, y: res.totalGain,
+                    type: 'scatter', mode: 'lines',
+                    name: `Total (${res.averages.totalGain >= 0 ? '+' : ''}${res.averages.totalGain.toFixed(1)} dB)`,
+                    line: { color: '#f56565', width: 3 }, yaxis: 'y'
+                },
+                {
+                    x: frequencies, y: res.noCableGain,
+                    type: 'scatter', mode: 'lines',
+                    name: `No Cable (${res.averages.noCableGain >= 0 ? '+' : ''}${res.averages.noCableGain.toFixed(1)} dB)`,
+                    line: { color: '#4299e1', width: 2, dash: 'dash' }, yaxis: 'y'
+                },
+                {
+                    x: frequencies, y: res.cableEffect,
+                    type: 'scatter', mode: 'lines',
+                    name: `Cable (${res.averages.cableEffect >= 0 ? '+' : ''}${res.averages.cableEffect.toFixed(1)} dB)`,
+                    line: { color: '#48bb78', width: 2 }, yaxis: 'y'
+                }
+            ];
+            if (showPhase) {
+                traces.push({
+                    x: frequencies, y: res.phase,
+                    type: 'scatter', mode: 'lines',
+                    name: 'Phase', line: { color: '#ed8936', width: 2 }, yaxis: 'y2'
+                });
+            }
+            return traces;
+        }
+
+        function renderPlots() {
+            const params = getParams();
+            const res = calculateFrequencyResponse(params);
+
+            if (!plotsInitialized) {
+                Plotly.newPlot('impedance-plot',
+                    [{ x: frequencies, y: res.impedance, type: 'scatter', mode: 'lines', line: { color: '#4299e1', width: 3 } }],
+                    makeImpedanceLayout(),
+                    { responsive: true, displayModeBar: false }
+                );
+
+                Plotly.newPlot('response-plot',
+                    makeResponseTraces(res, document.getElementById('show-phase').checked),
+                    makeResponseLayout(document.getElementById('show-phase').checked, parseFloat(document.getElementById('response-scale').value)),
+                    { responsive: true, displayModeBar: false }
+                );
+                plotsInitialized = true;
+                return;
+            }
+
+            Plotly.react('impedance-plot',
+                [{ x: frequencies, y: res.impedance }],
+                makeImpedanceLayout()
+            );
+
+            Plotly.react('response-plot',
+                makeResponseTraces(res, document.getElementById('show-phase').checked),
+                makeResponseLayout(document.getElementById('show-phase').checked, parseFloat(document.getElementById('response-scale').value))
+            );
+        }
+
+        /* requestAnimationFrame throttling */
+        function schedulePlotUpdate() {
+            if (plotLock) return;
+            plotLock = true;
+            requestAnimationFrame(() => {
+                renderPlots();
+                plotLock = false;
+            });
+        }
+
+        /* ---------- reset & init ---------- */
+        function resetAmplifierCableParams() {
+            document.getElementById('zout').value = 0.5;
+            document.getElementById('rcable').value = 0.3;
+            document.getElementById('Lcable').value = 0.5;
+            document.getElementById('Lvc').value = 0.20;
+            document.getElementById('Zmin').value = 16;
+
+            resonances = [{ fres: 120, Q: 2.0, Zpeak: 48 }];
+            renderResonanceControls();
+
+            ['zout', 'rcable', 'Lcable', 'Lvc', 'Zmin'].forEach(id => updateDisplay(id, parseFloat(document.getElementById(id).value)));
+            checkZratio();
+            schedulePlotUpdate();
+            scheduleURLUpdate();
+        }
+
+        function resetImpedanceView() {
+            document.getElementById('impedance-scale').value = 'auto';
+            schedulePlotUpdate();
+        }
+
+        function resetResponseView() {
+            document.getElementById('response-scale').value = '1';
+            schedulePlotUpdate();
+        }
+
+        function init() {
+            // Load parameters from URL if available
+            const loaded = loadFromURL();
+            
+            /* main slider listeners */
+            ['zout', 'rcable', 'Lcable', 'Lvc', 'Zmin'].forEach(id => {
+                const s = document.getElementById(id);
+                s.addEventListener('input', () => {
+                    updateDisplay(id, parseFloat(s.value));
+                    checkZratio();
+                    schedulePlotUpdate();
+                    scheduleURLUpdate();
+                });
+                updateDisplay(id, parseFloat(s.value));
+            });
+
+            /* plot option controls */
+            document.getElementById('impedance-scale').addEventListener('change', schedulePlotUpdate);
+            document.getElementById('response-scale').addEventListener('change', schedulePlotUpdate);
+            document.getElementById('show-phase').addEventListener('change', schedulePlotUpdate);
+
+            renderResonanceControls();
+            checkZratio();
+            renderPlots();
+            
+            // Set initial URL if no parameters were loaded
+            if (!loaded) {
+                setURL();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        /* ---------- URL parameter management ---------- */
+        function getParamsForURL() {
+            return {
+                zout: parseFloat(document.getElementById('zout').value),
+                rcable: parseFloat(document.getElementById('rcable').value),
+                Lcable: parseFloat(document.getElementById('Lcable').value),
+                Lvc: parseFloat(document.getElementById('Lvc').value),
+                Zmin: parseFloat(document.getElementById('Zmin').value),
+                resonances: resonances
+            };
+        }
+
+        function setURL() {
+            try {
+                const params = getParamsForURL();
+                const jsonStr = JSON.stringify(params);
+                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+                const url = new URL(window.location);
+                url.searchParams.set('params', base64);
+                window.history.replaceState({}, '', url);
+            } catch (e) {
+                console.warn('Failed to update URL parameters:', e);
+            }
+        }
+
+        function loadFromURL() {
+            try {
+                const url = new URL(window.location);
+                const base64 = url.searchParams.get('params');
+                if (!base64) return false;
+
+                const jsonStr = decodeURIComponent(escape(atob(base64)));
+                const params = JSON.parse(jsonStr);
+
+                // Set main parameters
+                document.getElementById('zout').value = params.zout || 0.5;
+                document.getElementById('rcable').value = params.rcable || 0.3;
+                document.getElementById('Lcable').value = params.Lcable || 0.5;
+                document.getElementById('Lvc').value = params.Lvc || 0.20;
+                document.getElementById('Zmin').value = params.Zmin || 16;
+
+                // Set resonances
+                if (params.resonances && Array.isArray(params.resonances)) {
+                    resonances = params.resonances.map(r => ({
+                        fres: r.fres || 120,
+                        Q: r.Q || 2.0,
+                        Zpeak: r.Zpeak || 48
+                    }));
+                }
+
+                return true;
+            } catch (e) {
+                console.warn('Failed to load URL parameters:', e);
+                return false;
+            }
+        }
+
+        function scheduleURLUpdate() {
+            if (urlUpdateTimer) clearTimeout(urlUpdateTimer);
+            urlUpdateTimer = setTimeout(setURL, 1000); // Update URL after 1 second
+        }
+    </script>
+</body>
+</html>
