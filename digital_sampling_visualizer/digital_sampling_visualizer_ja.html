@@ -8,7 +8,21 @@
 </head>
 <body>
 <div class="container">
-  <h1>Frieve Digital Sampling Visualizer</h1>
+  <div class="app-header">
+    <h1>Frieve Digital Sampling Visualizer</h1>
+    <button
+      type="button"
+      id="phasePlaybackToggle"
+      class="phase-playback-toggle"
+      aria-label="Phaseアニメーション再生"
+      aria-pressed="false"
+      title="Phaseアニメーション再生"
+      data-play-label="▶"
+      data-stop-label="■"
+      data-play-title="Phaseアニメーション再生"
+      data-stop-title="Phaseアニメーション停止"
+    >▶</button>
+  </div>
 
   <div class="controls control-row">
     <h3 class="control-group-title">元信号 :</h3>
@@ -29,7 +43,7 @@
       </label>
       <label class="control-line">
         <span class="control-label-text">信号レベル(dB)</span>
-        <input type="range" id="signalLevel" min="-144" max="0" value="0">
+        <input type="range" id="signalLevel" min="-144" max="0" value="-3">
         <span class="value-label" id="signalLevelVal"></span>
       </label>
       <div class="control-line">
@@ -44,7 +58,7 @@
       </div>
       <label class="control-line">
         <span class="control-label-text">Phase</span>
-        <input type="range" id="signalPhase" min="0" max="360" value="0" step="1">
+        <input type="range" id="signalPhase" min="0" max="359" value="0" step="1">
         <span class="value-label" id="signalPhaseVal"></span>度
       </label>
       <label class="control-line">
@@ -60,7 +74,7 @@
     <div class="control-stack">
       <label class="control-line">
         <span class="control-label-text">振幅方向表示範囲(dB)</span>
-        <input type="range" id="ampRange" min="-144" max="0" value="0">
+        <input type="range" id="ampRange" min="-144" max="3" value="0">
         <span class="value-label" id="ampRangeVal"></span>
       </label>
       <label class="control-line">

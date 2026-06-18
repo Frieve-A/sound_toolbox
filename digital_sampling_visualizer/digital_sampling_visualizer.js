@@ -18,6 +18,7 @@
   const srAll = srView + 2 * MARGIN;
   const BAND_LIMIT_FILTER_K = 512;
   const MAX_PHASE_MARGIN = 50000;
+  const WHITE_NOISE_SEED = 0x5eed1234;
 
   const ui = {};
   [
@@ -31,6 +32,7 @@
     "bandLimitEnabled",
     "bandLimitFreq",
     "signalPhase",
+    "phasePlaybackToggle",
     "ampRange",
     "timeRange",
     "sampleFreq",
@@ -62,6 +64,11 @@
   let sampleCache = { key: "", packet: null };
   let dacCache = { key: "", data: null };
   const kernelCache = new Map();
+  const PHASE_PLAYBACK_FPS = 60;
+  const PHASE_PLAYBACK_FRAME_MS = 1000 / PHASE_PLAYBACK_FPS;
+  const PHASE_PLAYBACK_RANGE = 360;
+  let phasePlaybackFrameId = null;
+  let lastPhasePlaybackTime = 0;
 
   function clearBandlimitedCaches(){
     bandlimitedSignalCache = {
@@ -96,7 +103,7 @@
   }
 
   function clearTimeRangeCaches(){
-    clearBandlimitedCaches();
+    clearPhasedCaches();
     clearAdditionalNoiseCaches();
   }
 
@@ -111,10 +118,10 @@
   }
 
   addInputListeners(
-    [...ui.signalTypeRadios, ui.signalFreq, ui.signalLevel, ui.bandLimitEnabled, ui.bandLimitFreq],
+    [...ui.signalTypeRadios, ui.signalFreq, ui.bandLimitEnabled, ui.bandLimitFreq],
     clearBandlimitedCaches
   );
-  addInputListeners([ui.signalPhase], clearPhasedCaches);
+  addInputListeners([ui.signalLevel, ui.signalPhase], clearPhasedCaches);
   addInputListeners([ui.noiseLevel], clearAdditionalNoiseCaches);
   addInputListeners([ui.timeRange], clearTimeRangeCaches);
   addInputListeners([ui.sampleFreq, ui.bitDepth, ui.aaFilterK], clearSamplingCaches);
@@ -170,6 +177,22 @@
     return srView / getDisplayTimeSec();
   }
 
+  function getMinDisplayTimeSec(){
+    return parseFloat(ui.timeRange.min) / 1000;
+  }
+
+  function getMaxDisplayTimeSec(){
+    return parseFloat(ui.timeRange.max) / 1000;
+  }
+
+  function getSourceSampleRate(){
+    return srView / getMinDisplayTimeSec();
+  }
+
+  function getSourceVisibleSamples(){
+    return Math.ceil(getMaxDisplayTimeSec() * getSourceSampleRate());
+  }
+
   function updateVals(){
     ui.signalFreqVal.textContent = Math.round(getSignalFreq());
     ui.signalLevelVal.textContent = ui.signalLevel.value;
@@ -184,6 +207,81 @@
     ui.bitDepthVal.textContent = ui.bitDepth.value;
     ui.aaFilterKVal.textContent = parseInt(ui.aaFilterK.value, 10) * 2 + 1;
     ui.filterKVal.textContent = parseInt(ui.filterK.value, 10) * 2 + 1;
+  }
+
+  function normalizePhaseValue(value){
+    const numericValue = Number(value);
+    let phase = (Number.isFinite(numericValue) ? Math.floor(numericValue) : 0) % PHASE_PLAYBACK_RANGE;
+    if(phase < 0) phase += PHASE_PLAYBACK_RANGE;
+    return phase;
+  }
+
+  function setSignalPhaseValue(phase){
+    ui.signalPhase.value = normalizePhaseValue(phase);
+    clearPhasedCaches();
+    updateVals();
+    draw();
+  }
+
+  function updatePhasePlaybackButton(isPlaying){
+    if(!ui.phasePlaybackToggle) return;
+
+    const label = isPlaying
+      ? ui.phasePlaybackToggle.dataset.stopLabel
+      : ui.phasePlaybackToggle.dataset.playLabel;
+    const title = isPlaying
+      ? ui.phasePlaybackToggle.dataset.stopTitle
+      : ui.phasePlaybackToggle.dataset.playTitle;
+
+    ui.phasePlaybackToggle.textContent = label || (isPlaying ? "■" : "▶");
+    ui.phasePlaybackToggle.title = title || "";
+    ui.phasePlaybackToggle.setAttribute("aria-label", title || "");
+    ui.phasePlaybackToggle.setAttribute("aria-pressed", isPlaying ? "true" : "false");
+  }
+
+  function stepPhasePlayback(timestamp){
+    if(phasePlaybackFrameId === null) return;
+
+    if(!lastPhasePlaybackTime){
+      lastPhasePlaybackTime = timestamp;
+    }
+
+    const elapsed = timestamp - lastPhasePlaybackTime;
+    const frames = Math.floor(elapsed / PHASE_PLAYBACK_FRAME_MS);
+    if(frames > 0){
+      lastPhasePlaybackTime += frames * PHASE_PLAYBACK_FRAME_MS;
+      setSignalPhaseValue(parseInt(ui.signalPhase.value, 10) + frames);
+    }
+
+    phasePlaybackFrameId = requestAnimationFrame(stepPhasePlayback);
+  }
+
+  function startPhasePlayback(){
+    if(phasePlaybackFrameId !== null) return;
+
+    setSignalPhaseValue(ui.signalPhase.value);
+    lastPhasePlaybackTime = 0;
+    updatePhasePlaybackButton(true);
+    phasePlaybackFrameId = requestAnimationFrame(stepPhasePlayback);
+  }
+
+  function stopPhasePlayback(){
+    if(phasePlaybackFrameId === null) return;
+
+    cancelAnimationFrame(phasePlaybackFrameId);
+    phasePlaybackFrameId = null;
+    lastPhasePlaybackTime = 0;
+    updatePhasePlaybackButton(false);
+  }
+
+  if(ui.phasePlaybackToggle){
+    ui.phasePlaybackToggle.addEventListener("click", () => {
+      if(phasePlaybackFrameId !== null){
+        stopPhasePlayback();
+      } else {
+        startPhasePlayback();
+      }
+    });
   }
 
   function timeToX(tSec){
@@ -207,18 +305,27 @@
     return phase;
   }
 
+  function getPhaseShiftDegrees(){
+    return getSignalType() === "white_noise" ? getSignalPhase() : getSignedPhaseDegrees();
+  }
+
   function getPhaseMarginSamples(){
     const freq = Math.max(getSignalFreq(), 1);
-    return Math.ceil(Math.min(getDisplaySampleRate() / (2 * freq), MAX_PHASE_MARGIN));
+    const maxShiftCycles = getSignalType() === "white_noise" ? 1 : 0.5;
+    return Math.ceil(Math.min(getSourceSampleRate() * maxShiftCycles / freq, MAX_PHASE_MARGIN));
+  }
+
+  function getSourceMarginSamples(){
+    const minDisplaySampleRate = srView / getMaxDisplayTimeSec();
+    const maxDisplayMarginSamples = Math.ceil((MARGIN / minDisplaySampleRate) * getSourceSampleRate());
+    return maxDisplayMarginSamples + getPhaseMarginSamples() + BAND_LIMIT_FILTER_K + 2;
   }
 
   function makeBandlimitedSignalKey(){
     return [
       getSignalType(),
       ui.signalFreq.value,
-      ui.signalLevel.value,
-      isBandLimitEnabled() ? ui.bandLimitFreq.value : "off",
-      ui.timeRange.value
+      isBandLimitEnabled() ? ui.bandLimitFreq.value : "off"
     ].join("|");
   }
 
@@ -270,12 +377,68 @@
     return kernel;
   }
 
-  function applySincLowPass(dataF, cutoffFreq, sampleRate, K){
-    if(K <= 0 || cutoffFreq >= sampleRate / 2) return new Float64Array(dataF);
+  function nextPowerOfTwo(value){
+    let size = 1;
+    while(size < value) size <<= 1;
+    return size;
+  }
 
-    const kernel = getSincLowPassKernel(cutoffFreq, sampleRate, K);
-    if(!kernel) return new Float64Array(dataF.length);
+  function fftRadix2(real, imag, inverse){
+    const n = real.length;
+    for(let i=1, j=0; i<n; i++){
+      let bit = n >> 1;
+      while(j & bit){
+        j ^= bit;
+        bit >>= 1;
+      }
+      j ^= bit;
 
+      if(i < j){
+        const realTmp = real[i];
+        const imagTmp = imag[i];
+        real[i] = real[j];
+        imag[i] = imag[j];
+        real[j] = realTmp;
+        imag[j] = imagTmp;
+      }
+    }
+
+    for(let len=2; len<=n; len<<=1){
+      const angle = (inverse ? 2 : -2) * Math.PI / len;
+      const wLenReal = Math.cos(angle);
+      const wLenImag = Math.sin(angle);
+      const halfLen = len >> 1;
+
+      for(let i=0; i<n; i+=len){
+        let wReal = 1;
+        let wImag = 0;
+        for(let j=0; j<halfLen; j++){
+          const evenReal = real[i + j];
+          const evenImag = imag[i + j];
+          const oddReal = real[i + j + halfLen] * wReal - imag[i + j + halfLen] * wImag;
+          const oddImag = real[i + j + halfLen] * wImag + imag[i + j + halfLen] * wReal;
+
+          real[i + j] = evenReal + oddReal;
+          imag[i + j] = evenImag + oddImag;
+          real[i + j + halfLen] = evenReal - oddReal;
+          imag[i + j + halfLen] = evenImag - oddImag;
+
+          const nextWReal = wReal * wLenReal - wImag * wLenImag;
+          wImag = wReal * wLenImag + wImag * wLenReal;
+          wReal = nextWReal;
+        }
+      }
+    }
+
+    if(inverse){
+      for(let i=0; i<n; i++){
+        real[i] /= n;
+        imag[i] /= n;
+      }
+    }
+  }
+
+  function applySincLowPassDirect(dataF, kernel, K){
     const outF = new Float64Array(dataF.length);
     for(let i=0; i<dataF.length; i++){
       let sum = 0;
@@ -288,53 +451,105 @@
     return outF;
   }
 
-  function normalizeTruePeak(dataF, targetPeak, allowBoost){
-    if(targetPeak <= 0) return dataF;
+  function applySincLowPass(dataF, cutoffFreq, sampleRate, K){
+    if(K <= 0 || cutoffFreq >= sampleRate / 2) return new Float64Array(dataF);
 
-    const start = Math.min(BAND_LIMIT_FILTER_K, dataF.length);
-    const end = Math.max(start, dataF.length - BAND_LIMIT_FILTER_K);
+    const kernel = getSincLowPassKernel(cutoffFreq, sampleRate, K);
+    if(!kernel) return new Float64Array(dataF.length);
+
+    if(dataF.length === 0) return new Float64Array(0);
+
+    const kernelLength = kernel.length;
+    if(dataF.length * kernelLength <= 1000000){
+      return applySincLowPassDirect(dataF, kernel, K);
+    }
+
+    const paddedLength = dataF.length + 2 * K;
+    const convLength = paddedLength + kernelLength - 1;
+    const fftSize = nextPowerOfTwo(convLength);
+    const dataReal = new Float64Array(fftSize);
+    const dataImag = new Float64Array(fftSize);
+    const kernelReal = new Float64Array(fftSize);
+    const kernelImag = new Float64Array(fftSize);
+
+    for(let i=0; i<paddedLength; i++){
+      dataReal[i] = dataF[clamp(i - K, 0, dataF.length - 1)];
+    }
+    for(let i=0; i<kernelLength; i++){
+      kernelReal[i] = kernel[kernelLength - 1 - i];
+    }
+
+    fftRadix2(dataReal, dataImag, false);
+    fftRadix2(kernelReal, kernelImag, false);
+    for(let i=0; i<fftSize; i++){
+      const real = dataReal[i] * kernelReal[i] - dataImag[i] * kernelImag[i];
+      const imag = dataReal[i] * kernelImag[i] + dataImag[i] * kernelReal[i];
+      dataReal[i] = real;
+      dataImag[i] = imag;
+    }
+    fftRadix2(dataReal, dataImag, true);
+
+    const outF = new Float64Array(dataF.length);
+    for(let i=0; i<dataF.length; i++){
+      outF[i] = dataReal[i + kernelLength - 1];
+    }
+    return outF;
+  }
+
+  function rotl32(value, bits){
+    return ((value << bits) | (value >>> (32 - bits))) >>> 0;
+  }
+
+  function createWhiteNoiseRandom(){
+    let splitMixState = (WHITE_NOISE_SEED ^ Math.imul(parseInt(ui.signalFreq.value, 10), 0x9e3779b9)) >>> 0;
+    function splitMix32(){
+      splitMixState = (splitMixState + 0x9e3779b9) >>> 0;
+      let value = splitMixState;
+      value = Math.imul(value ^ (value >>> 16), 0x21f0aaad);
+      value = Math.imul(value ^ (value >>> 15), 0x735a2d97);
+      return (value ^ (value >>> 15)) >>> 0;
+    }
+
+    let s0 = splitMix32();
+    let s1 = splitMix32();
+    let s2 = splitMix32();
+    let s3 = splitMix32();
+    if((s0 | s1 | s2 | s3) === 0){
+      s0 = WHITE_NOISE_SEED;
+    }
+
+    return function(){
+      const result = Math.imul(rotl32(Math.imul(s1, 5), 7), 9) >>> 0;
+      const t = (s1 << 9) >>> 0;
+      s2 ^= s0;
+      s3 ^= s1;
+      s1 ^= s2;
+      s0 ^= s3;
+      s2 ^= t;
+      s3 = rotl32(s3, 11);
+      return result / 4294967296;
+    };
+  }
+
+  function normalizePeak(dataF){
     let peak = 0;
-    for(let i=start; i<end; i++){
-      const absValue = Math.abs(dataF[i]);
-      if(absValue > peak) peak = absValue;
+    for(let i=0; i<dataF.length; i++){
+      peak = Math.max(peak, Math.abs(dataF[i]));
     }
     if(peak <= 1.0e-12) return dataF;
-    if(!allowBoost && peak <= targetPeak) return dataF;
 
-    const scale = targetPeak / peak;
     for(let i=0; i<dataF.length; i++){
-      dataF[i] *= scale;
+      dataF[i] /= peak;
     }
     return dataF;
   }
 
-  function makeNoiseCycle(periodSamples){
-    const len = Math.max(2, Math.ceil(periodSamples));
-    const cycle = new Float64Array(len);
-    for(let i=0; i<len; i++){
-      cycle[i] = Math.random() * 2 - 1;
-    }
-    return cycle;
-  }
-
-  function sampleNoiseCycle(cycle, phase){
-    const len = cycle.length;
-    let pos = phase % len;
-    if(pos < 0) pos += len;
-    const idx0 = Math.floor(pos);
-    const idx1 = (idx0 + 1) % len;
-    const frac = pos - idx0;
-    return cycle[idx0] + frac * (cycle[idx1] - cycle[idx0]);
-  }
-
-  function generateSourceFloat(marginSamples){
+  function generateSourceFloat(marginSamples, visibleSamples, sampleRate){
     const type = getSignalType();
     const freq = getSignalFreq();
-    const level = dbToLinear(parseFloat(ui.signalLevel.value));
-    const sampleRate = getDisplaySampleRate();
-    const totalSamples = srView + 2 * marginSamples;
+    const totalSamples = visibleSamples + 2 * marginSamples;
     const dataF = new Float64Array(totalSamples);
-    const noiseCycle = type === "white_noise" ? makeNoiseCycle(sampleRate / freq) : null;
+    const whiteNoiseRandom = type === "white_noise" ? createWhiteNoiseRandom() : null;
 
     for(let i=0; i<totalSamples; i++){
       const t = ((i + 0.5) - marginSamples) / sampleRate;
@@ -348,12 +563,12 @@
       } else if(type === "saw"){
         sample = 2 * (cyclePos - Math.floor(cyclePos)) - 1;
       } else if(type === "white_noise"){
-        sample = sampleNoiseCycle(noiseCycle, cyclePos * noiseCycle.length);
+        sample = whiteNoiseRandom() * 2 - 1;
       }
 
-      dataF[i] = level * sample;
+      dataF[i] = sample;
     }
-    return dataF;
+    return type === "white_noise" ? normalizePeak(dataF) : dataF;
   }
 
   function getBandlimitedSignal(){
@@ -362,22 +577,23 @@
       return bandlimitedSignalCache;
     }
 
-    const sampleRate = getDisplaySampleRate();
-    const marginSamples = MARGIN + getPhaseMarginSamples() + BAND_LIMIT_FILTER_K + 2;
-    const sourceF = generateSourceFloat(marginSamples);
+    const sampleRate = getSourceSampleRate();
+    const visibleSamples = getSourceVisibleSamples();
+    const marginSamples = getSourceMarginSamples();
+    const sourceF = generateSourceFloat(marginSamples, visibleSamples, sampleRate);
     const filteredF = isBandLimitEnabled()
       ? applySincLowPass(sourceF, Math.min(getBandLimitFreq(), sampleRate / 2), sampleRate, BAND_LIMIT_FILTER_K)
       : new Float64Array(sourceF);
-    normalizeTruePeak(
-      filteredF,
-      dbToLinear(parseFloat(ui.signalLevel.value)),
-      getSignalType() === "white_noise"
-    );
+    if(getSignalType() === "white_noise"){
+      normalizePeak(filteredF);
+    }
 
     bandlimitedSignalCache = {
       key,
       data: filteredF,
       margin: marginSamples,
+      sampleRate,
+      visibleSamples,
       version: bandlimitedSignalCache.version + 1
     };
     clearPhasedCaches();
@@ -394,16 +610,28 @@
 
   function getPhasedSignal(){
     const base = getBandlimitedSignal();
-    const phaseShiftSamples = getSignedPhaseDegrees() / 360 * getDisplaySampleRate() / getSignalFreq();
-    const key = [base.version, base.key, base.margin, getSignedPhaseDegrees()].join("|");
+    const phaseShiftDegrees = getPhaseShiftDegrees();
+    const phaseShiftSec = phaseShiftDegrees / 360 / getSignalFreq();
+    const level = dbToLinear(parseFloat(ui.signalLevel.value));
+    const key = [
+      base.version,
+      base.key,
+      base.margin,
+      base.sampleRate,
+      ui.timeRange.value,
+      ui.signalLevel.value,
+      phaseShiftDegrees
+    ].join("|");
     if(phasedSignalCache.key === key && phasedSignalCache.data){
       return phasedSignalCache.data;
     }
 
     const dataF = new Float64Array(srAll);
-    const marginOffset = base.margin - MARGIN;
+    const displaySampleRate = getDisplaySampleRate();
     for(let i=0; i<srAll; i++){
-      dataF[i] = sampleFloatAt(base.data, i + marginOffset + phaseShiftSamples);
+      const displayTimeSec = ((i + 0.5) - MARGIN) / displaySampleRate;
+      const sourceIdx = (displayTimeSec + phaseShiftSec) * base.sampleRate + base.margin - 0.5;
+      dataF[i] = sampleFloatAt(base.data, sourceIdx) * level;
     }
 
     phasedSignalCache = { key, data: dataF };
