@@ -1,0 +1,21 @@
+{
+  "name": "sound-toolbox",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "build": "astro build && node scripts/copy-static-assets.mjs",
+    "preview": "astro preview --host 127.0.0.1",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "astro": "^6.4.8",
+    "marked": "^18.0.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "^25.9.3",
+    "typescript": "^6.0.3"
+  }
+}

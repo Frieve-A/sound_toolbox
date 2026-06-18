@@ -1,0 +1,30 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { renderMarkdownFile } from '../lib/markdown';
+import { getReadmePages } from '../lib/readme-pages';
+
+export async function getStaticPaths() {
+  const pages = await getReadmePages();
+  return pages
+    .filter((page) => page.slug)
+    .map((page) => ({
+      params: { slug: page.slug },
+      props: { page },
+    }));
+}
+
+const { page } = Astro.props;
+const html = await renderMarkdownFile(page, import.meta.env.BASE_URL);
+---
+
+<SiteLayout title={`${page.title} | Sound Toolbox`} description={page.title}>
+  <div class="doc-page">
+    <article class="markdown-body" set:html={html} />
+    <aside class="doc-aside" aria-label="Page actions">
+      <a class="button secondary" href={`${import.meta.env.BASE_URL}`}>All tools</a>
+      <a class="button" href={`https://github.com/Frieve-A/sound_toolbox/tree/main/${page.sourceDir}`}>
+        Source
+      </a>
+    </aside>
+  </div>
+</SiteLayout>

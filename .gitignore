@@ -1,1 +1,6 @@
 .qodo
+node_modules/
+dist/
+.astro
+*.log
+* - コピー*.html

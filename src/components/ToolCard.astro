@@ -1,0 +1,20 @@
+---
+const { tool } = Astro.props;
+const hasSeparateJaApp = tool.appHrefJa && tool.appHrefJa !== tool.appHref;
+---
+
+<article class="tool-card">
+  <a class="tool-card__image" href={tool.appHref} aria-label={`Open ${tool.title}`}>
+    <img src={tool.imageSrc} alt={tool.imageAlt || `${tool.title} screenshot`} loading="lazy" />
+  </a>
+  <div class="tool-card__body">
+    <h3>{tool.title}</h3>
+    {tool.description && <p>{tool.description}</p>}
+    {tool.descriptionJa && <p lang="ja">{tool.descriptionJa}</p>}
+    <div class="tool-card__actions">
+      <a class="button" href={tool.appHref}>Open app</a>
+      {hasSeparateJaApp && <a class="button secondary" href={tool.appHrefJa}>JA app</a>}
+      <a class="button secondary" href={tool.readmeHref}>Guide</a>
+    </div>
+  </div>
+</article>

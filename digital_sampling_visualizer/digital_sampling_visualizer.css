@@ -1,0 +1,119 @@
+body {
+  margin: 0;
+  background-color: #222;
+  color: #ddd;
+  font-family: sans-serif;
+}
+
+.container {
+  width: 1280px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.controls {
+  margin-bottom: 10px;
+  padding: 8px 0;
+}
+
+.control-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.control-group-title {
+  width: 212px;
+  margin: 0 0 5px 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.control-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.control-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.control-label-text {
+  display: inline-block;
+  width: 256px;
+  text-align: left;
+}
+
+.control-line input[type="range"] {
+  width: 300px;
+}
+
+.control-line input[type="range"]:disabled {
+  opacity: 0.4;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.value-label {
+  min-width: 60px;
+  text-align: right;
+}
+
+.checkbox-controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.check-blue,
+.check-yellow,
+.check-red {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.check-blue {
+  color: #00aaff;
+}
+
+.check-yellow {
+  color: #ffdd00;
+}
+
+.check-red {
+  color: #ff3333;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #555;
+  background-color: #333;
+}
+
+.description {
+  margin-top: 10px;
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.4;
+}

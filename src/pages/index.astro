@@ -1,0 +1,43 @@
+---
+import ToolCard from '../components/ToolCard.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { getHomeData } from '../lib/readme-pages';
+
+const home = await getHomeData(import.meta.env.BASE_URL);
+const featuredShots = home.tools.slice(0, 3);
+---
+
+<SiteLayout title={home.title} description={home.intro.en}>
+  <section class="hero" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">Browser-based audio tools</p>
+      <h1 id="page-title">{home.title}</h1>
+      <div class="hero-copy">
+        {home.intro.en && <p>{home.intro.en}</p>}
+        {home.intro.ja && <p lang="ja">{home.intro.ja}</p>}
+      </div>
+    </div>
+    <div class="tool-strip" aria-label="Tool screenshots">
+      {
+        featuredShots.map((tool) => (
+          <a class="strip-shot" href={tool.appHref} aria-label={`Open ${tool.title}`}>
+            <img src={tool.imageSrc} alt={`${tool.title} screenshot`} loading="eager" />
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="tools-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="tools-title">Tools</h2>
+        <p>README.md is the source for this generated index.</p>
+      </div>
+      <p>{home.tools.length} tools</p>
+    </div>
+    <div class="tool-grid">
+      {home.tools.map((tool) => <ToolCard tool={tool} />)}
+    </div>
+  </section>
+</SiteLayout>

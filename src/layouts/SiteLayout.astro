@@ -1,0 +1,449 @@
+---
+const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <style is:global>
+      :root {
+        color-scheme: light;
+        --background: #f7f7f2;
+        --surface: #ffffff;
+        --surface-muted: #efefe7;
+        --ink: #171a1c;
+        --muted: #626b70;
+        --line: #d7d7ce;
+        --accent: #007f73;
+        --accent-strong: #005f58;
+        --warm: #d45d3b;
+        --gold: #be8b00;
+        --shadow: 0 18px 45px rgba(20, 24, 26, 0.1);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 247, 242, 0) 360px),
+          var(--background);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      a {
+        color: var(--accent-strong);
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .site-shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 24px 0 18px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(0, 127, 115, 0.16), rgba(212, 93, 59, 0.16)),
+          var(--surface);
+        position: relative;
+      }
+
+      .brand-mark::before,
+      .brand-mark::after {
+        content: "";
+        position: absolute;
+        inset: 9px 7px;
+        border-top: 3px solid var(--accent);
+        border-bottom: 3px solid var(--warm);
+      }
+
+      .brand-mark::after {
+        inset: 14px 11px 9px;
+        border-color: var(--gold);
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .nav-link {
+        color: var(--muted);
+        font-size: 0.94rem;
+        text-decoration: none;
+      }
+
+      .nav-link:hover {
+        color: var(--ink);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+        gap: 32px;
+        align-items: end;
+        padding: 34px 0 36px;
+      }
+
+      .eyebrow {
+        color: var(--accent-strong);
+        font-size: 0.78rem;
+        font-weight: 760;
+        letter-spacing: 0;
+        margin: 0 0 10px;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.12;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.25rem, 7vw, 5.1rem);
+        max-width: 9.5em;
+      }
+
+      .hero-copy {
+        margin: 20px 0 0;
+        max-width: 680px;
+        color: var(--muted);
+        font-size: 1.06rem;
+      }
+
+      .tool-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .strip-shot {
+        min-height: 168px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface-muted);
+        box-shadow: var(--shadow);
+      }
+
+      .strip-shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 10px 0 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: 1.42rem;
+      }
+
+      .section-heading p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        padding-bottom: 52px;
+      }
+
+      .tool-card {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 12px 28px rgba(20, 24, 26, 0.07);
+      }
+
+      .tool-card__image {
+        aspect-ratio: 16 / 10;
+        overflow: hidden;
+        background: var(--surface-muted);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tool-card__image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .tool-card__body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .tool-card h3 {
+        margin: 0;
+        font-size: 1.08rem;
+      }
+
+      .tool-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .tool-card__actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: auto;
+        padding-top: 4px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        padding: 8px 13px;
+        color: #ffffff;
+        background: var(--accent);
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .button:hover {
+        background: var(--accent-strong);
+        border-color: var(--accent-strong);
+      }
+
+      .button.secondary {
+        color: var(--accent-strong);
+        background: transparent;
+      }
+
+      .button.secondary:hover {
+        color: #ffffff;
+        background: var(--accent-strong);
+      }
+
+      .doc-page {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 230px;
+        gap: 34px;
+        padding: 24px 0 60px;
+        align-items: start;
+      }
+
+      .markdown-body {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 12px 28px rgba(20, 24, 26, 0.07);
+        padding: clamp(22px, 4vw, 42px);
+      }
+
+      .markdown-body h1 {
+        margin: 0 0 18px;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+      }
+
+      .markdown-body h2 {
+        margin: 2.1em 0 0.65em;
+        font-size: 1.45rem;
+      }
+
+      .markdown-body h3 {
+        margin: 1.6em 0 0.55em;
+        font-size: 1.16rem;
+      }
+
+      .markdown-body p,
+      .markdown-body li {
+        color: #33383b;
+      }
+
+      .markdown-body p {
+        margin: 0 0 1em;
+      }
+
+      .markdown-body img {
+        width: min(100%, 880px);
+        margin: 18px 0 26px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface-muted);
+      }
+
+      .markdown-body table {
+        width: 100%;
+        margin: 22px 0;
+        border-collapse: collapse;
+        overflow-wrap: anywhere;
+        font-size: 0.95rem;
+      }
+
+      .markdown-body th,
+      .markdown-body td {
+        border: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .markdown-body th {
+        background: var(--surface-muted);
+      }
+
+      .markdown-body hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 34px 0;
+      }
+
+      .markdown-body code {
+        border-radius: 6px;
+        padding: 0.16em 0.34em;
+        background: var(--surface-muted);
+        font-size: 0.92em;
+      }
+
+      .doc-aside {
+        position: sticky;
+        top: 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .site-footer {
+        border-top: 1px solid var(--line);
+        padding: 24px 0 32px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 900px) {
+        .hero,
+        .doc-page {
+          grid-template-columns: 1fr;
+        }
+
+        .tool-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .doc-aside {
+          position: static;
+          order: -1;
+          display: flex;
+          flex-wrap: wrap;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .site-shell {
+          width: min(100% - 22px, 1120px);
+        }
+
+        .site-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .hero {
+          padding-top: 18px;
+        }
+
+        .tool-strip,
+        .tool-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .strip-shot {
+          min-height: 154px;
+        }
+
+        .section-heading {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-shell site-header">
+      <a class="brand" href={`${import.meta.env.BASE_URL}`}>
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Sound Toolbox</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a class="nav-link" href={`${import.meta.env.BASE_URL}`}>Tools</a>
+        <a class="nav-link" href="https://github.com/Frieve-A/sound_toolbox">GitHub</a>
+      </nav>
+    </header>
+    <main class="site-shell">
+      <slot />
+    </main>
+    <footer class="site-shell site-footer">
+      <span>Frieve's Sound Toolbox</span>
+    </footer>
+  </body>
+</html>
