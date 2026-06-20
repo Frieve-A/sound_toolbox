@@ -64,6 +64,8 @@
   let sampleCache = { key: "", packet: null };
   let dacCache = { key: "", data: null };
   const kernelCache = new Map();
+  const upsamplingPlanCache = new Map();
+  const UPSAMPLING_PHASE_QUANTIZATION = 1.0e12;
   const PHASE_PLAYBACK_FPS = 60;
   const PHASE_PLAYBACK_FRAME_MS = 1000 / PHASE_PLAYBACK_FPS;
   const PHASE_PLAYBACK_RANGE = 360;
@@ -737,6 +739,133 @@
     return packet;
   }
 
+  function getExactUpsamplingPositionParams(Fs, sampleRate){
+    const sampleFreqSlider = parseInt(ui.sampleFreq.value, 10);
+    const timeRangeMs = parseFloat(ui.timeRange.value);
+    if(
+      !Number.isInteger(sampleFreqSlider) ||
+      !Number.isInteger(timeRangeMs) ||
+      sampleFreqSlider <= 0 ||
+      timeRangeMs <= 0
+    ){
+      return null;
+    }
+
+    const expectedFs = sampleFreqSlider * 100;
+    const expectedSampleRate = srView * 1000 / timeRangeMs;
+    if(Fs !== expectedFs || Math.abs(sampleRate - expectedSampleRate) > 1.0e-9){
+      return null;
+    }
+
+    return {
+      denominator: 20 * srView,
+      numeratorStep: sampleFreqSlider * timeRangeMs
+    };
+  }
+
+  function makeUpsamplingPhaseCoefficients(phase, Fs, sampleRate, K){
+    const fc = Math.min(Fs / 2, sampleRate / 2);
+    const gain = fc * 2;
+    const cutoffScale = gain / Fs;
+    const coefficients = new Float64Array(2 * K + 1);
+    let weightSum = 0;
+
+    for(let k=-K; k<=K; k++){
+      const idx = k + K;
+      const arg = cutoffScale * (phase - k);
+      let w = sinc(arg) * gain;
+      w *= blackmanWindow(idx, 2 * K);
+      coefficients[idx] = w;
+      weightSum += w;
+    }
+
+    if(Math.abs(weightSum) > 1.0e-12){
+      for(let i=0; i<coefficients.length; i++){
+        coefficients[i] /= weightSum;
+      }
+    } else {
+      coefficients.fill(0);
+    }
+
+    return coefficients;
+  }
+
+  function getUpsamplingFilterPlan(Fs, sampleRate, K){
+    const exactPositionParams = getExactUpsamplingPositionParams(Fs, sampleRate);
+    const key = [
+      K,
+      Fs,
+      sampleRate.toPrecision(17),
+      ui.sampleFreq.value,
+      ui.timeRange.value,
+      srView
+    ].join("|");
+    const cached = upsamplingPlanCache.get(key);
+    if(cached) return cached;
+
+    const outputBases = new Int32Array(srView);
+    const outputPhaseIndices = new Int32Array(srView);
+    const phaseIndexByKey = new Map();
+    const phaseCoefficients = [];
+
+    for(let i=0; i<srView; i++){
+      const tOut = (i + 0.5) / sampleRate;
+      const nCenter = tOut * Fs + MARGIN;
+      const nBase = Math.floor(nCenter);
+      const phase = nCenter - nBase;
+      let phaseKey;
+
+      if(exactPositionParams){
+        const numerator = (2 * i + 1) * exactPositionParams.numeratorStep;
+        const exactBase = MARGIN + Math.floor(numerator / exactPositionParams.denominator);
+        const phaseNumerator = numerator % exactPositionParams.denominator;
+        phaseKey = nBase === exactBase
+          ? phaseNumerator
+          : `f${Math.round(phase * UPSAMPLING_PHASE_QUANTIZATION)}`;
+      } else {
+        phaseKey = `f${Math.round(phase * UPSAMPLING_PHASE_QUANTIZATION)}`;
+      }
+
+      let phaseIndex = phaseIndexByKey.get(phaseKey);
+      if(phaseIndex === undefined){
+        phaseIndex = phaseCoefficients.length;
+        phaseIndexByKey.set(phaseKey, phaseIndex);
+        phaseCoefficients.push(makeUpsamplingPhaseCoefficients(phase, Fs, sampleRate, K));
+      }
+
+      outputBases[i] = nBase;
+      outputPhaseIndices[i] = phaseIndex;
+    }
+
+    const plan = { outputBases, outputPhaseIndices, phaseCoefficients };
+    if(upsamplingPlanCache.size > 16){
+      upsamplingPlanCache.clear();
+    }
+    upsamplingPlanCache.set(key, plan);
+    return plan;
+  }
+
+  function makeUpsampledValueDirect(values, N, Fs, maxAmp, sampleRate, K, outputIndex){
+    const tOut = (outputIndex + 0.5) / sampleRate;
+    const nCenter = tOut * Fs + MARGIN;
+    const fc = Math.min(Fs / 2, sampleRate / 2);
+    let sum = 0;
+    let wsum = 0;
+
+    for(let k=-K; k<=K; k++){
+      const n = clamp(Math.floor(nCenter) + k, 0, N - 1);
+      const tIn = (n - MARGIN) / Fs;
+      const tDiff = tOut - tIn;
+      const arg = 2 * fc * tDiff;
+      let w = sinc(arg) * (fc * 2);
+      w *= blackmanWindow(k + K, 2 * K);
+      sum += values[n] * w;
+      wsum += w;
+    }
+
+    return Math.abs(wsum) > 1.0e-12 ? (sum / wsum) / maxAmp : 0;
+  }
+
   function makeUpsampledFloat(packet){
     const values = packet.values;
     const N = values.length;
@@ -758,25 +887,22 @@
       return outF;
     }
 
-    const fc = Math.min(Fs / 2, sampleRate / 2);
+    const plan = getUpsamplingFilterPlan(Fs, sampleRate, K);
     for(let i=0; i<srView; i++){
-      const tOut = (i + 0.5) / sampleRate;
-      const nCenter = tOut * Fs + MARGIN;
-      let sum = 0;
-      let wsum = 0;
-
-      for(let k=-K; k<=K; k++){
-        const n = clamp(Math.floor(nCenter) + k, 0, N - 1);
-        const tIn = (n - MARGIN) / Fs;
-        const tDiff = tOut - tIn;
-        const arg = 2 * fc * tDiff;
-        let w = sinc(arg) * (fc * 2);
-        w *= blackmanWindow(k + K, 2 * K);
-        sum += values[n] * w;
-        wsum += w;
+      const nBase = plan.outputBases[i];
+      if(nBase - K < 0 || nBase + K >= N){
+        outF[i] = makeUpsampledValueDirect(values, N, Fs, maxAmp, sampleRate, K, i);
+        continue;
       }
 
-      outF[i] = Math.abs(wsum) > 1.0e-12 ? (sum / wsum) / maxAmp : 0;
+      const coefficients = plan.phaseCoefficients[plan.outputPhaseIndices[i]];
+      let sum = 0;
+
+      for(let tap=0; tap<coefficients.length; tap++){
+        sum += values[nBase + tap - K] * coefficients[tap];
+      }
+
+      outF[i] = sum / maxAmp;
     }
     return outF;
   }
@@ -929,7 +1055,7 @@
       const x = timeToX(t);
       const y = ampToY(values[i] / packet.maxAmp);
       ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2, false);
+      ctx.arc(x, y, 4, 0, Math.PI * 2, false);
       ctx.fill();
     }
   }

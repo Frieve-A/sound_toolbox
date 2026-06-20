@@ -7,6 +7,8 @@
         let panner = null;
         let noiseSource = null;
         let isPlaying = false;
+        let oscillatorWaveform = null;
+        let oscillatorHarmonicLimit = null;
 
         // Get Elements
         const frequencySlider = document.getElementById('frequency');
@@ -20,6 +22,10 @@
         // Frequency Mapping Constants
         const minFreq = 20;
         const maxFreq = 96000;
+        const bandLimitedWaveforms = new Set(['sawtooth', 'square', 'triangle']);
+        const periodicWaveCache = new Map();
+        const maxPeriodicWaveCacheEntries = 128;
+        const nyquistGuardHz = 1;
 
         // Display Initial Values
         const initialFreq = getFrequency(frequencySlider.value);
@@ -49,6 +55,7 @@
             console.log(`Slider Value: ${frequencySlider.value}, Frequency: ${freq} Hz`);
             if (oscillator) {
                 oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                updateOscillatorWaveform(getSelectedWaveform(), freq);
             }
         });
 
@@ -156,10 +163,104 @@
         // Start Oscillator Function
         function startOscillator(waveform) {
             oscillator = audioCtx.createOscillator();
-            oscillator.type = waveform;
-            oscillator.frequency.setValueAtTime(getFrequency(frequencySlider.value), audioCtx.currentTime);
+            const frequency = getFrequency(frequencySlider.value);
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            updateOscillatorWaveform(waveform, frequency);
             oscillator.connect(gainNode);
             oscillator.start();
+        }
+
+        // Configure harmonic-limited periodic waves for shapes that otherwise
+        // contain discontinuities or sharp corners above Nyquist.
+        function updateOscillatorWaveform(waveform, frequency) {
+            if (!oscillator) {
+                return;
+            }
+
+            if (!bandLimitedWaveforms.has(waveform)) {
+                if (oscillatorWaveform !== waveform) {
+                    oscillator.type = waveform;
+                    oscillatorWaveform = waveform;
+                    oscillatorHarmonicLimit = null;
+                }
+                return;
+            }
+
+            const harmonicLimit = getHarmonicLimit(frequency);
+            if (harmonicLimit === 0) {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(0, audioCtx.currentTime);
+                oscillatorWaveform = waveform;
+                oscillatorHarmonicLimit = harmonicLimit;
+                return;
+            }
+
+            if (oscillatorWaveform === waveform && oscillatorHarmonicLimit === harmonicLimit) {
+                return;
+            }
+
+            oscillator.setPeriodicWave(getBandLimitedPeriodicWave(waveform, harmonicLimit));
+            oscillatorWaveform = waveform;
+            oscillatorHarmonicLimit = harmonicLimit;
+        }
+
+        function getHarmonicLimit(frequency) {
+            const usableNyquist = Math.max(0, audioCtx.sampleRate / 2 - nyquistGuardHz);
+            if (frequency <= 0 || frequency > usableNyquist) {
+                return 0;
+            }
+            return Math.floor(usableNyquist / frequency);
+        }
+
+        function getBandLimitedPeriodicWave(waveform, harmonicLimit) {
+            const cacheKey = `${waveform}:${audioCtx.sampleRate}:${harmonicLimit}`;
+            const cached = periodicWaveCache.get(cacheKey);
+            if (cached) {
+                return cached;
+            }
+
+            const coefficientLength = Math.max(2, harmonicLimit + 1);
+            const real = new Float32Array(coefficientLength);
+            const imag = new Float32Array(coefficientLength);
+
+            for (let harmonic = 1; harmonic <= harmonicLimit; harmonic++) {
+                if (waveform === 'square' && harmonic % 2 === 0) {
+                    continue;
+                }
+                if (waveform === 'triangle' && harmonic % 2 === 0) {
+                    continue;
+                }
+
+                imag[harmonic] = getBandLimitedCoefficient(waveform, harmonic);
+            }
+
+            const periodicWave = audioCtx.createPeriodicWave(real, imag);
+            periodicWaveCache.set(cacheKey, periodicWave);
+            trimPeriodicWaveCache();
+            return periodicWave;
+        }
+
+        function getBandLimitedCoefficient(waveform, harmonic) {
+            switch (waveform) {
+                case 'sawtooth':
+                    return (2 / Math.PI) * (harmonic % 2 === 0 ? -1 : 1) / harmonic;
+                case 'square':
+                    return 4 / (Math.PI * harmonic);
+                case 'triangle': {
+                    const oddIndex = (harmonic - 1) / 2;
+                    const sign = oddIndex % 2 === 0 ? 1 : -1;
+                    return sign * 8 / (Math.PI * Math.PI * harmonic * harmonic);
+                }
+                default:
+                    return 0;
+            }
+        }
+
+        function trimPeriodicWaveCache() {
+            while (periodicWaveCache.size > maxPeriodicWaveCacheEntries) {
+                const oldestKey = periodicWaveCache.keys().next().value;
+                periodicWaveCache.delete(oldestKey);
+            }
         }
 
         // Stop Audio Function
@@ -246,6 +347,8 @@
                 oscillator.stop();
                 oscillator.disconnect();
                 oscillator = null;
+                oscillatorWaveform = null;
+                oscillatorHarmonicLimit = null;
             }
         }
 
