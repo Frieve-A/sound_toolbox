@@ -1,0 +1,18 @@
+{
+  "name": "Frieve Digital Sampling Visualizer",
+  "short_name": "Sampling Visualizer",
+  "start_url": "digital_sampling_visualizer_ja.html",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

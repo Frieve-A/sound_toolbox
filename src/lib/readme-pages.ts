@@ -49,13 +49,15 @@ function toPosixPath(filePath: string): string {
 
 // Each tool keeps its own app/PWA icon under its directory; filenames vary by
 // tool. Resolve the first one that exists so the home cards and guide pages can
-// show a per-app icon.
+// show a per-app icon. Card thumbnails are small, so prefer the downscaled,
+// web-weight variants and fall back to the full-resolution master only when no
+// smaller icon exists.
 const ICON_CANDIDATES = [
-  'icon.png',
+  'assets/icon_64x64.png',
   'icon-192x192.png',
   'icon-512x512.png',
   'assets/icon.png',
-  'assets/icon_64x64.png',
+  'icon.png',
 ];
 
 function resolveToolIcon(sourceDir: string): string {

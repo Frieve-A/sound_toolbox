@@ -1,0 +1,18 @@
+{
+  "name": "Frieve Auditory Masking Experience",
+  "short_name": "Masking Experience",
+  "start_url": "masking_experience.html",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
