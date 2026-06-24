@@ -1,20 +1,39 @@
 ---
 const { tool } = Astro.props;
-const hasSeparateJaApp = tool.appHrefJa && tool.appHrefJa !== tool.appHref;
+// A separate Japanese app URL means the launcher should follow the language
+// setting; the [data-app-*] hrefs are swapped client-side in SiteLayout.
+const appJa = tool.appHrefJa && tool.appHrefJa !== tool.appHref ? tool.appHrefJa : '';
 ---
 
 <article class="tool-card">
-  <a class="tool-card__image" href={tool.appHref} aria-label={`Open ${tool.title}`}>
+  <a
+    class="tool-card__image"
+    href={tool.appHref}
+    data-app-en={appJa ? tool.appHref : undefined}
+    data-app-ja={appJa || undefined}
+    aria-label={`Open ${tool.title}`}
+  >
     <img src={tool.imageSrc} alt={tool.imageAlt || `${tool.title} screenshot`} loading="lazy" />
   </a>
   <div class="tool-card__body">
-    <h3>{tool.title}</h3>
-    {tool.description && <p>{tool.description}</p>}
-    {tool.descriptionJa && <p lang="ja">{tool.descriptionJa}</p>}
+    <div class="tool-card__head">
+      <h3>{tool.title}</h3>
+      {tool.iconSrc && <img class="tool-card__icon" src={tool.iconSrc} alt="" loading="lazy" />}
+    </div>
+    {tool.description && <p data-i18n="en">{tool.description}</p>}
+    {tool.descriptionJa && <p data-i18n="ja" lang="ja">{tool.descriptionJa}</p>}
     <div class="tool-card__actions">
-      <a class="button" href={tool.appHref}>Open app</a>
-      {hasSeparateJaApp && <a class="button secondary" href={tool.appHrefJa}>JA app</a>}
-      <a class="button secondary" href={tool.readmeHref}>Guide</a>
+      <a
+        class="button"
+        href={tool.appHref}
+        data-app-en={appJa ? tool.appHref : undefined}
+        data-app-ja={appJa || undefined}
+      >
+        <span data-i18n="en">Open app</span><span data-i18n="ja">アプリを開く</span>
+      </a>
+      <a class="button secondary" href={tool.readmeHref}>
+        <span data-i18n="en">Guide</span><span data-i18n="ja">ガイド</span>
+      </a>
     </div>
   </div>
 </article>

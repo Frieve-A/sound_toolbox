@@ -10,11 +10,15 @@ const featuredShots = home.tools.slice(0, 3);
 <SiteLayout title={home.title} description={home.intro.en}>
   <section class="hero" aria-labelledby="page-title">
     <div>
-      <p class="eyebrow">Browser-based audio tools</p>
+      <p class="eyebrow">
+        <span data-i18n="en">Browser-based audio tools</span><span data-i18n="ja"
+          >ブラウザで動く音響ツール</span
+        >
+      </p>
       <h1 id="page-title">{home.title}</h1>
       <div class="hero-copy">
-        {home.intro.en && <p>{home.intro.en}</p>}
-        {home.intro.ja && <p lang="ja">{home.intro.ja}</p>}
+        {home.intro.en && <p data-i18n="en">{home.intro.en}</p>}
+        {home.intro.ja && <p data-i18n="ja" lang="ja">{home.intro.ja}</p>}
       </div>
     </div>
     <div class="tool-strip" aria-label="Tool screenshots">
@@ -31,10 +35,20 @@ const featuredShots = home.tools.slice(0, 3);
   <section aria-labelledby="tools-title">
     <div class="section-heading">
       <div>
-        <h2 id="tools-title">Tools</h2>
-        <p>README.md is the source for this generated index.</p>
+        <h2 id="tools-title">
+          <span data-i18n="en">Tools</span><span data-i18n="ja">ツール</span>
+        </h2>
+        <p>
+          <span data-i18n="en">README.md is the source for this generated index.</span><span
+            data-i18n="ja">このインデックスは README.md から生成されています。</span
+          >
+        </p>
       </div>
-      <p>{home.tools.length} tools</p>
+      <p>
+        <span data-i18n="en">{home.tools.length} tools</span><span data-i18n="ja"
+          >{home.tools.length} 個のツール</span
+        >
+      </p>
     </div>
     <div class="tool-grid">
       {home.tools.map((tool) => <ToolCard tool={tool} />)}

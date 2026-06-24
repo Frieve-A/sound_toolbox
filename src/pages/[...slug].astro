@@ -1,29 +1,88 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
-import { renderMarkdownFile } from '../lib/markdown';
-import { getReadmePages } from '../lib/readme-pages';
+import { renderBilingualMarkdownFile } from '../lib/markdown';
+import { getHomeData, getReadmePages } from '../lib/readme-pages';
 
 export async function getStaticPaths() {
   const pages = await getReadmePages();
+  const home = await getHomeData(import.meta.env.BASE_URL);
+  const toolById = new Map(home.tools.map((tool) => [tool.id, tool]));
+
   return pages
     .filter((page) => page.slug)
-    .map((page) => ({
-      params: { slug: page.slug },
-      props: { page },
-    }));
+    .map((page) => {
+      const tool = toolById.get(page.slug);
+      return {
+        params: { slug: page.slug },
+        props: {
+          page,
+          description: tool?.description || tool?.descriptionJa || page.title,
+          appHref: tool?.appHref ?? '',
+          appHrefJa: tool?.appHrefJa ?? '',
+          iconSrc: tool?.iconSrc ?? '',
+        },
+      };
+    });
 }
 
-const { page } = Astro.props;
-const html = await renderMarkdownFile(page, import.meta.env.BASE_URL);
+const { page, description, appHref, appHrefJa, iconSrc } = Astro.props;
+const appJa = appHrefJa && appHrefJa !== appHref ? appHrefJa : '';
+const { en, ja } = await renderBilingualMarkdownFile(page, import.meta.env.BASE_URL);
+const ogImage = `${import.meta.env.BASE_URL}${page.slug}/ogp.jpg`.replace(/\/{2,}/g, '/');
+
+// Lift the leading <h1> out of the rendered markdown so it can sit in a header
+// row next to the app icon instead of starting flush-left inside the body.
+function splitHeading(html: string): { title: string; body: string } {
+  const match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (!match) {
+    return { title: page.title, body: html };
+  }
+  return { title: match[1], body: html.replace(match[0], '').trimStart() };
+}
+
+const enDoc = splitHeading(en);
+const jaDoc = ja ? splitHeading(ja) : null;
 ---
 
-<SiteLayout title={`${page.title} | Sound Toolbox`} description={page.title}>
+<SiteLayout
+  title={`${page.title} | Sound Toolbox`}
+  description={description}
+  image={ogImage}
+>
   <div class="doc-page">
-    <article class="markdown-body" set:html={html} />
+    <article class="markdown-body">
+      <header class="doc-head">
+        {iconSrc && <img class="doc-head__icon" src={iconSrc} alt="" />}
+        <h1 class="doc-head__title">
+          <span data-i18n="en" set:html={enDoc.title} />
+          {jaDoc && <span data-i18n="ja" lang="ja" set:html={jaDoc.title} />}
+        </h1>
+      </header>
+      {jaDoc ? (
+        <>
+          <div data-i18n="en" set:html={enDoc.body} />
+          <div data-i18n="ja" lang="ja" set:html={jaDoc.body} />
+        </>
+      ) : (
+        <Fragment set:html={enDoc.body} />
+      )}
+    </article>
     <aside class="doc-aside" aria-label="Page actions">
-      <a class="button secondary" href={`${import.meta.env.BASE_URL}`}>All tools</a>
-      <a class="button" href={`https://github.com/Frieve-A/sound_toolbox/tree/main/${page.sourceDir}`}>
-        Source
+      {appHref && (
+        <a
+          class="button"
+          href={appHref}
+          data-app-en={appJa ? appHref : undefined}
+          data-app-ja={appJa || undefined}
+        >
+          <span data-i18n="en">Open app</span><span data-i18n="ja">アプリを開く</span>
+        </a>
+      )}
+      <a class="button secondary" href={`${import.meta.env.BASE_URL}`}>
+        <span data-i18n="en">All tools</span><span data-i18n="ja">ツール一覧</span>
+      </a>
+      <a class="button secondary" href={`https://github.com/Frieve-A/sound_toolbox/tree/main/${page.sourceDir}`}>
+        <span data-i18n="en">Source</span><span data-i18n="ja">ソース</span>
       </a>
     </aside>
   </div>

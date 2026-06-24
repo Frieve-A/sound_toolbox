@@ -1,15 +1,61 @@
 ---
-const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
+const { title, description = "Frieve's Sound Toolbox", image = `${import.meta.env.BASE_URL}ogp.jpg` } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const ogImageUrl = new URL(image, Astro.site);
 ---
 
 <!doctype html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Resolve the display language before paint to avoid a flash of both languages. -->
+    <script is:inline>
+      (function () {
+        try {
+          var pref = localStorage.getItem('site-lang') || 'default';
+          var lang =
+            pref === 'en' || pref === 'ja'
+              ? pref
+              : (navigator.language || '').toLowerCase().indexOf('ja') === 0
+                ? 'ja'
+                : 'en';
+          document.documentElement.dataset.lang = lang;
+          document.documentElement.lang = lang;
+        } catch (e) {
+          document.documentElement.dataset.lang = 'en';
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Frieve's Sound Toolbox" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
     <title>{title}</title>
+    <!-- Google Analytics 4 (gtag.js) — fires only on the production host -->
+    <script is:inline>
+      if (location.hostname === 'frieve-a.github.io') {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-L4GP1VJ6SZ';
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', 'G-L4GP1VJ6SZ');
+      }
+    </script>
     <style is:global>
       :root {
         color-scheme: light;
@@ -115,6 +161,46 @@ const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
 
       .nav-link:hover {
         color: var(--ink);
+      }
+
+      /* Language switching: only the selected language is shown. With JS
+         disabled, no data-lang is set and both languages remain visible. */
+      html[data-lang="en"] [data-i18n="ja"] {
+        display: none;
+      }
+
+      html[data-lang="ja"] [data-i18n="en"] {
+        display: none;
+      }
+
+      .lang-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .lang-switch__icon {
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+
+      .lang-select {
+        appearance: none;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 28px 6px 10px;
+        color: var(--ink);
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23626b70' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E")
+            no-repeat right 10px center,
+          var(--surface);
+        font-size: 0.9rem;
+        line-height: 1.2;
+        cursor: pointer;
+      }
+
+      .lang-select:hover {
+        border-color: var(--accent);
       }
 
       .hero {
@@ -235,9 +321,24 @@ const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
         padding: 18px;
       }
 
+      .tool-card__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
       .tool-card h3 {
         margin: 0;
         font-size: 1.08rem;
+      }
+
+      .tool-card__icon {
+        width: 42px;
+        height: 42px;
+        flex: none;
+        border-radius: 10px;
+        object-fit: contain;
       }
 
       .tool-card p {
@@ -304,6 +405,40 @@ const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
       .markdown-body h1 {
         margin: 0 0 18px;
         font-size: clamp(2rem, 5vw, 3.5rem);
+      }
+
+      /* Guide page title row: app icon on the left, the heading filling the
+         rest of the width so the two together span the full content width. */
+      .doc-head {
+        display: flex;
+        align-items: flex-start;
+        gap: clamp(14px, 2.4vw, 24px);
+        margin: 0 0 22px;
+      }
+
+      /* Scoped under .markdown-body to override the generic `.markdown-body img`
+         sizing (width: min(100%, 880px) + margins) that would otherwise stretch
+         the icon box. Match the heading's font size and keep it square. */
+      .markdown-body .doc-head__icon {
+        /* Size in em off the title's own font size, then centre the icon on the
+           first text line: half the line-box leading ((1.12 - 1) / 2 = 0.06em)
+           so the icon's mid-line matches the first line's mid-line. */
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        width: 1em;
+        height: 1em;
+        margin: 0.06em 0 0;
+        flex: none;
+        border: 0;
+        border-radius: 0.24em;
+        background: none;
+        object-fit: contain;
+      }
+
+      .doc-head h1.doc-head__title {
+        flex: 1;
+        min-width: 0;
+        max-width: none; /* override base `h1 { max-width: 9.5em }` that forces early wrapping */
+        margin: 0;
       }
 
       .markdown-body h2 {
@@ -435,8 +570,18 @@ const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
         <span>Sound Toolbox</span>
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
-        <a class="nav-link" href={`${import.meta.env.BASE_URL}`}>Tools</a>
+        <a class="nav-link" href={`${import.meta.env.BASE_URL}`}>
+          <span data-i18n="en">Tools</span><span data-i18n="ja">ツール</span>
+        </a>
         <a class="nav-link" href="https://github.com/Frieve-A/sound_toolbox">GitHub</a>
+        <span class="lang-switch">
+          <span class="lang-switch__icon" aria-hidden="true">🌐</span>
+          <select id="lang-select" class="lang-select" aria-label="Language / 言語">
+            <option value="default">Default</option>
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+          </select>
+        </span>
       </nav>
     </header>
     <main class="site-shell">
@@ -445,5 +590,41 @@ const { title, description = "Frieve's Sound Toolbox" } = Astro.props;
     <footer class="site-shell site-footer">
       <span>Frieve's Sound Toolbox</span>
     </footer>
+    <script is:inline>
+      (function () {
+        function resolve(pref) {
+          if (pref === 'en' || pref === 'ja') return pref;
+          return (navigator.language || '').toLowerCase().indexOf('ja') === 0 ? 'ja' : 'en';
+        }
+
+        // Point every language-aware app launcher at the matching UI variant.
+        function applyLang(lang) {
+          document.documentElement.dataset.lang = lang;
+          document.documentElement.lang = lang;
+          var apps = document.querySelectorAll('[data-app-ja]');
+          for (var i = 0; i < apps.length; i += 1) {
+            var el = apps[i];
+            el.setAttribute('href', lang === 'ja' ? el.getAttribute('data-app-ja') : el.getAttribute('data-app-en'));
+          }
+        }
+
+        var pref = 'default';
+        try {
+          pref = localStorage.getItem('site-lang') || 'default';
+        } catch (e) {}
+        applyLang(resolve(pref));
+
+        var select = document.getElementById('lang-select');
+        if (!select) return;
+        select.value = pref;
+        select.addEventListener('change', function () {
+          var next = select.value;
+          try {
+            localStorage.setItem('site-lang', next);
+          } catch (e) {}
+          applyLang(resolve(next));
+        });
+      })();
+    </script>
   </body>
 </html>

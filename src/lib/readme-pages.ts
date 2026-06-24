@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { marked } from 'marked';
@@ -25,6 +26,7 @@ type ToolCard = {
   imageSrc: string;
   imageSrcJa: string;
   imageAlt: string;
+  iconSrc: string;
 };
 
 const ignoredDirs = new Set([
@@ -43,6 +45,32 @@ const ignoredDirs = new Set([
 
 function toPosixPath(filePath: string): string {
   return filePath.split(path.sep).join('/');
+}
+
+// Each tool keeps its own app/PWA icon under its directory; filenames vary by
+// tool. Resolve the first one that exists so the home cards and guide pages can
+// show a per-app icon.
+const ICON_CANDIDATES = [
+  'icon.png',
+  'icon-192x192.png',
+  'icon-512x512.png',
+  'assets/icon.png',
+  'assets/icon_64x64.png',
+];
+
+function resolveToolIcon(sourceDir: string): string {
+  if (!sourceDir) {
+    return '';
+  }
+
+  for (const name of ICON_CANDIDATES) {
+    const relative = `${sourceDir}/${name}`;
+    if (existsSync(path.join(workspaceRoot, relative))) {
+      return relative;
+    }
+  }
+
+  return '';
 }
 
 async function collectReadmeFiles(dir = workspaceRoot): Promise<string[]> {
@@ -188,6 +216,7 @@ function parseToolCards(markdown: string): ToolCard[] {
       imageSrc: '',
       imageSrcJa: '',
       imageAlt: '',
+      iconSrc: '',
     };
 
     if (hasJapanese(`${title} ${description}`)) {
@@ -236,6 +265,7 @@ function parseStandaloneToolCard(markdown: string, sourceDir: string): ToolCard 
     imageSrc: '',
     imageSrcJa: '',
     imageAlt: '',
+    iconSrc: '',
   };
 
   let lastLanguage: 'en' | 'ja' = hasJapanese(title) ? 'ja' : 'en';
@@ -316,13 +346,17 @@ export async function getHomeData(base = '/') {
     )
   ).filter((tool): tool is ToolCard => Boolean(tool));
 
-  const tools = [...rootTools, ...extraTools].map((tool) => ({
-    ...tool,
-    readmeHref: toSiteHref(tool.readmeHref, base),
-    appHref: toSiteHref(tool.appHref, base),
-    appHrefJa: tool.appHrefJa ? toSiteHref(tool.appHrefJa, base) : '',
-    imageSrc: toSiteHref(tool.imageSrcJa || tool.imageSrc, base),
-  }));
+  const tools = [...rootTools, ...extraTools].map((tool) => {
+    const icon = resolveToolIcon(tool.id);
+    return {
+      ...tool,
+      readmeHref: toSiteHref(tool.readmeHref, base),
+      appHref: toSiteHref(tool.appHref, base),
+      appHrefJa: tool.appHrefJa ? toSiteHref(tool.appHrefJa, base) : '',
+      imageSrc: toSiteHref(tool.imageSrcJa || tool.imageSrc, base),
+      iconSrc: icon ? toSiteHref(icon, base) : '',
+    };
+  });
 
   return {
     title: titleToken?.text ?? "Frieve's Sound Toolbox",
