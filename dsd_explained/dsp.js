@@ -255,6 +255,14 @@ const App = {
     BASE_SAMPLING_RATE: 44100, // Hz
     TARGET_DOWNSAMPLE_FREQ: 352800, // Hz for FFT pre-processing
     FFT_SIZE: 8192, // Must be power of 2
+    WORKER_SEGMENTS: 64, // Welch-averaging segments for the converged spectrum
+
+    // --- Frequency-response worker (off-thread, parameter-driven) ---
+    fftWorker: null,
+    workerJobId: 0,
+    workerSpectrum: null,    // converged spectrum (dB) from the worker
+    workerDecimatedFs: null, // decimated sampling rate used for the FFT axis
+    workerProgress: 0,
 
     // --- State ---
     isRunning: false,
@@ -313,6 +321,9 @@ const App = {
             console.error("UI Initialization failed.");
             return;
         }
+        // Spin up the off-thread frequency-response worker before the first
+        // updateState(), so the initial parameters kick off a spectrum job.
+        this.initWorker();
         // Initial setup
         this.updateState();
         this.lastTimestamp = performance.now();
@@ -331,6 +342,61 @@ const App = {
         this.updateState();
     },
 
+    // Create the Web Worker that computes the converged frequency response.
+    initWorker: function() {
+        if (typeof Worker === 'undefined') {
+            console.warn("Web Worker unavailable; frequency spectrum will not update.");
+            return;
+        }
+        try {
+            this.fftWorker = new Worker('fft_worker.js');
+        } catch (e) {
+            console.error("Failed to create FFT worker:", e);
+            this.fftWorker = null;
+            return;
+        }
+        this.fftWorker.onmessage = (e) => {
+            const d = e.data;
+            if (!d || d.job !== this.workerJobId) return; // ignore stale jobs
+            this.workerSpectrum = d.spectrumDb;
+            this.workerDecimatedFs = d.decimatedFs;
+            this.workerProgress = d.progress;
+            this.fftProgress = d.progress; // drives the canvas progress bar
+        };
+        this.fftWorker.onerror = (e) => {
+            console.error("FFT worker error:", e.message || e);
+        };
+    },
+
+    // Dispatch a fresh frequency-response computation for the current parameters.
+    postWorkerJob: function() {
+        if (!this.fftWorker) return;
+        const p = this.currentParams;
+        if (!p || p.fsMultiplier === undefined) return;
+        const cfg = DSP.deltasigmaCoeffs?.[p.noiseOrder]?.[p.fsMultiplier]?.[p.adBits];
+        this.workerJobId += 1;
+        this.workerProgress = 0;
+        this.fftProgress = 0;
+        // Clear the stale spectrum so nothing old is shown until the first
+        // result of this new job arrives.
+        this.workerSpectrum = null;
+        this.fftWorker.postMessage({
+            job: this.workerJobId,
+            signalFreq: p.signalFreq,
+            fsMultiplier: p.fsMultiplier,
+            adBits: p.adBits,
+            noiseOrder: p.noiseOrder,
+            lpfCutoff: p.lpfCutoff,
+            lpfOrder: p.lpfOrder,
+            ntfNum: cfg?.num || [1.0],
+            ntfDen: cfg?.den || [1.0],
+            fftSize: this.FFT_SIZE,
+            targetDownsampleFreq: this.TARGET_DOWNSAMPLE_FREQ,
+            baseSamplingRate: this.BASE_SAMPLING_RATE,
+            totalSegments: this.WORKER_SEGMENTS,
+        });
+    },
+
     updateState: function() {
         const newParams = UI.getControlValues();
         if (!newParams) {
@@ -342,6 +408,7 @@ const App = {
         let adBitsChanged = this.currentParams.adBits !== newParams.adBits;
         let lpfParamsChanged = this.currentParams.lpfCutoff !== newParams.lpfCutoff || this.currentParams.lpfOrder !== newParams.lpfOrder;
         let noiseOrderChanged = this.currentParams.noiseOrder !== newParams.noiseOrder;
+        let signalFreqChanged = this.currentParams.signalFreq !== newParams.signalFreq;
 
         this.currentParams = newParams;
 
@@ -400,6 +467,12 @@ const App = {
         }
 
         this.needsCoefficientUpdate = false; // Reset flag
+
+        // Any parameter that changes the spectrum kicks off a fresh, fast,
+        // off-thread computation so the converged response appears quickly.
+        if (fsChanged || adBitsChanged || lpfParamsChanged || noiseOrderChanged || signalFreqChanged) {
+            this.postWorkerJob();
+        }
     },
 
     run: function(timestamp) {
@@ -409,9 +482,6 @@ const App = {
             requestAnimationFrame(this.run.bind(this));
             return;
         }
-        // Only perform FFT and drawing here
-        const spectrum = this.performFFT();
-
         // Fetch display-only flags (Show Waveforms)
         const flags = UI.getControlValues() || {};
         const displayParams = {
@@ -425,9 +495,12 @@ const App = {
         };
         // Draw time and frequency domains
         UI.drawTimeDomain(this.timeDomainBuffer, displayParams);
-        // Use actual decimated sampling frequency for FFT axis
-        const decimatedFs = (this.BASE_SAMPLING_RATE * this.currentParams.fsMultiplier) / DSP.decimationFactor;
-        UI.drawFrequencyDomain(spectrum || [], decimatedFs);
+        // The frequency response comes from the off-thread worker (converged via
+        // Welch averaging). Fall back to the live decimation rate for the axis
+        // until the first worker result arrives.
+        const decimatedFs = this.workerDecimatedFs
+            || (this.BASE_SAMPLING_RATE * this.currentParams.fsMultiplier) / DSP.decimationFactor;
+        UI.drawFrequencyDomain(this.workerSpectrum || [], decimatedFs);
         requestAnimationFrame(this.run.bind(this));
     },
 
