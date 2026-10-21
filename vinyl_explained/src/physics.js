@@ -24,6 +24,15 @@ import { CONST, hertzK, vtfNewton } from './params.js?v=20260706-sigma13-cache';
 import { makeRng } from './dsp.js?v=20260706-sigma13-cache';
 import { N_L, N_R, U_L, U_R } from './groove.js?v=20260706-sigma13-cache';
 
+// The discharge range is referenced to program peaks at +12 dB.
+const STATIC_REFERENCE_GAIN = 0.251188643150958;
+// An ESD edge is much faster than the audio rate. Its audible residual is limited here
+// by the longest RC decay in a standard 47 kOhm / 100-200 pF moving-magnet input.
+const PHONO_INPUT_RESISTANCE = 47e3;
+const PHONO_INPUT_CAPACITANCE = 200e-12;
+const STATIC_DECAY_SECONDS = PHONO_INPUT_RESISTANCE * PHONO_INPUT_CAPACITANCE;
+const STATIC_LIFETIME_SECONDS = 12 * STATIC_DECAY_SECONDS;
+
 const NSCAN = 25; // 走査窓のサンプル数 (窓±6.4µm → 間隔~0.53µm)
 
 export class StylusSim {
@@ -206,7 +215,11 @@ export class StylusSim {
 
       // --- 静電気パルス (電気系イベント, Poisson) ---
       if (p.staticRate > 0 && this.staticRng() < p.staticRate * dt * this.eventRateScale) {
-        this.pops.push({ t0: this.t, amp: (0.5 + 2.5 * this.staticRng()) * CONST.V_REF * (this.staticRng() < 0.5 ? -1 : 1) });
+        this.pops.push({
+          t0: this.t,
+          amp: (0.5 + 2.5 * this.staticRng()) * CONST.V_REF * STATIC_REFERENCE_GAIN *
+            (this.staticRng() < 0.5 ? -1 : 1),
+        });
         this.staticFlash = 1;
         this.staticCount++;
         if (this.pops.length > 16) this.pops.shift();
@@ -219,12 +232,12 @@ export class StylusSim {
         // カートリッジは速度比例発電: チップ速度を45/45で復号
         let vLp = this.vx * U_L.x + this.vy * U_L.y;
         let vRp = this.vx * U_R.x + this.vy * U_R.y;
-        // 静電気ポップ (電気パルス, τ=0.4ms減衰)
+        // 静電気ポップ (電気パルス, MMフォノ入力のRC減衰)
         for (let k = this.pops.length - 1; k >= 0; k--) {
           const P = this.pops[k];
           const dtp = this.t - P.t0;
-          if (dtp > 0.005) { this.pops.splice(k, 1); continue; }
-          const e = P.amp * Math.exp(-dtp / 0.4e-3);
+          if (dtp > STATIC_LIFETIME_SECONDS) { this.pops.splice(k, 1); continue; }
+          const e = P.amp * Math.exp(-dtp / STATIC_DECAY_SECONDS);
           vLp += e; vRp += e;
         }
         this.outAccumL += vLp;

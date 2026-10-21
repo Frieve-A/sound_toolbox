@@ -1,5 +1,5 @@
 // 境界条件・物理挙動の検証テスト
-import { defaultParams } from '../../vinyl_explained/src/params.js';
+import { CONST, defaultParams } from '../../vinyl_explained/src/params.js';
 import { Measurement, computeSnr, goertzelRms } from '../../vinyl_explained/src/analysis.js';
 
 const base = defaultParams();
@@ -47,13 +47,18 @@ const finite = arr => arr.every(Number.isFinite);
     `dust=${res.groove.dust.length}個生成 skip=${res.skipPerSec.toFixed(1)}/s mistrack=${res.mistrackPerSec.toFixed(0)}/s`);
 }
 
-// [5] 静電気: パルスがノイズ測定に現れる
+// [5] 静電気: パルスがノイズ測定に現れ、基準速度に対して過大にならない
 {
   const quiet = await new Measurement(base, { signalType: 'silence', dustRate: 0, staticRate: 0 }, 0.25).run();
   const popped = await new Measurement(base, { signalType: 'silence', dustRate: 0, staticRate: 80 }, 0.25).run();
   const s1 = computeSnr(quiet).snr, s2 = computeSnr(popped).snr;
-  check('静電気パルスがSNを悪化させる', popped.sim.staticCount > 0 && s2 < s1 - 3,
-    `pops=${popped.sim.staticCount} SN ${s1.toFixed(1)}→${s2.toFixed(1)}dB`);
+  const peakRatio = popped.outDeL.reduce((peak, sample) => {
+    const magnitude = sample < 0 ? -sample : sample;
+    return magnitude > peak ? magnitude : peak;
+  }, 0) / CONST.V_REF;
+  check('静電気パルスが有効かつ過大でない',
+    popped.sim.staticCount > 0 && s2 < s1 - 3 && peakRatio < 0.12,
+    `pops=${popped.sim.staticCount} peak=${peakRatio.toFixed(3)} ref SN ${s1.toFixed(1)}→${s2.toFixed(1)}dB`);
 }
 
 // [6] 極端パラメータ耐性 (粗さ100nm + レベル+12dB + 78rpm)
