@@ -9,9 +9,10 @@ Frieve Sound ABX Tester is an app designed to test whether you can distinguish d
 
 - Enter the URIs of the high-quality and low-quality audio files in their respective fields.
 - Specify the number of tests to be performed. Increasing the number of tests will yield more accurate results, but will take more time.
+- "Keep A and B fixed in ABX tests" is on by default: A is the high-quality file and B is the low-quality file, with their URIs or local file names shown during the test. Uncheck it to shuffle A and B each trial. X is always chosen at random, and A/B preference tests always shuffle A and B.
 - By sharing the URL, you can share the same test with others.
 - Choose either an A/B preference test to see which audio quality is better, or an ABX test to determine whether X is the same as A or B, then start the test.
-- Randomly shuffled audio will be presented, so press the play button to listen. Each sample can be played as many times as needed.
+- Press the play buttons to listen to the audio. Each sample can be played as many times as needed.
 - In the A/B preference test, select the audio you entered as the high-quality one, and in the ABX test, select whether X matches A or B.
 - When the specified number of tests is completed, the app displays your correct answer rate, the time taken to make each judgment, and whether we can confidently say you noticed the difference.
 - Press the "Share Results" button to copy the URL for sharing your results to the clipboard.
@@ -22,6 +23,9 @@ Compare the original music file with the file after DA/AD conversion
 
 Experience earphone recabling impedance curve frequency response changes
 [> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/recable/recable_test.html)
+
+EffeTune ABX Challenge: three blind tests from easy to hard (low-bitrate MP3, high-impedance amp, long thin cable)
+[> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/effetune_challenge/)
 
 ---
 
@@ -34,9 +38,10 @@ Frieve Sound ABX Tester は、2つの音声ファイルの差異を聞き分け�
 
 - 高音質の音声URIと、低音質の音声URIの欄に、それぞれ音声ファイルのURIを入力します。
 - テスト回数を指定します。テスト回数を増やすほど結果は正確になりますが、その分時間がかかります。
+- 「ABXテストでAとBを固定する」は初期状態でONです。Aは高音質、Bは低音質のファイルに固定され、テスト中もURIまたはローカルファイル名を表示します。OFFにすると毎回AとBをシャッフルします。Xは常にランダムに選ばれ、A/B比較テストではこの設定にかかわらずAとBをシャッフルします。
 - 設定時点でのURLをシェアすることで、同じテストを他の人と共有できます。
 - どちらの音質がより良いか選ぶA/B比較テスト、もしくはXはAとBのどちらと同じ音声か判定するABXテストのどちらかを選択して開始します。
-- ランダムにシャッフルされた音声が提示されますので、再生ボタンを押してそれぞれの音声を確認します。各音声サンプルは何度でも再生可能です。
+- 再生ボタンを押してそれぞれの音声を確認します。各音声サンプルは何度でも再生可能です。
 - A/B比較テストでは高音質の音声として入力した方の音声を、ABXテストではXと同じ音声をA、Bから選択します。
 - 指定回数のテストが終わると正答率、判断に要した時間、差が分かったと言えるかなどの成績が表示されます。
 - 結果を共有ボタンを押して、結果を共有するためのURLをクリップボードにコピーします。
@@ -47,3 +52,6 @@ Frieve Sound ABX Tester は、2つの音声ファイルの差異を聞き分け�
 
 イヤホンリケーブルによるインピーダンスカーブ起因の周波数特性変化を体験する
 [> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/recable/recable_test.html)
+
+EffeTune ABX チャレンジ：やさしい〜むずかしいの3段階のブラインドテスト（低ビットレートMP3、出力インピーダンスの高いアンプ、細く長いケーブル）
+[> Open Example](https://frieve-a.github.io/sound_toolbox/sound_abx_tester/effetune_challenge/?lang=ja)

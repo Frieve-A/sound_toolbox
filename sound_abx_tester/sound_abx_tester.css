@@ -17,6 +17,26 @@ body {
       margin-top: 1rem;
       font-weight: bold;
     }
+    .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .checkbox-option input {
+      flex-shrink: 0;
+      margin: 0;
+      accent-color: #28a745;
+    }
+    .abx-sources {
+      padding: 0.5rem 1rem;
+      background-color: #1a1a1a;
+      border-radius: 5px;
+      overflow-wrap: anywhere;
+    }
+    .abx-sources p {
+      margin: 0.5rem 0;
+    }
     input[type="text"],
     input[type="number"] {
       width: 100%;

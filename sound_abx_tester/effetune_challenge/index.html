@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EffeTune ABX Challenge - Can You Hear the Difference?</title>
+  <meta name="description" content="Three blind ABX listening tests in your browser: a 64 kbit/s MP3, a high-impedance headphone amp, and a long, thin earphone cable, each against the original.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Frieve's Sound Toolbox">
+  <meta property="og:title" content="EffeTune ABX Challenge">
+  <meta property="og:description" content="Can you hear the difference? Three blind ABX tests, from easy to hard.">
+  <meta property="og:url" content="https://frieve-a.github.io/sound_toolbox/sound_abx_tester/effetune_challenge/">
+  <meta property="og:image" content="https://frieve-a.github.io/sound_toolbox/sound_abx_tester/ogp.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="challenge.css">
+<!-- Google Analytics 4 (gtag.js) — fires only on the production host -->
+<script>
+  if (location.hostname === 'frieve-a.github.io') {
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-L4GP1VJ6SZ';
+    document.head.appendChild(s);
+    gtag('js', new Date());
+    gtag('config', 'G-L4GP1VJ6SZ');
+  }
+</script>
+</head>
+<body>
+<main class="page">
+  <nav class="lang" aria-label="Language">
+    <button type="button" data-lang="en">English</button>
+    <button type="button" data-lang="ja">日本語</button>
+  </nav>
+
+  <header class="hero">
+    <p class="kicker" data-t="kicker">EffeTune ABX Challenge</p>
+    <h1 data-t="title">Can you hear the difference?</h1>
+    <p class="lead" data-t="lead">Each challenge compares the original recording with one processed version in a blind ABX test. A is the original and B is processed. X is one of them, chosen at random for each trial. Listen, then answer whether X is A or B.</p>
+  </header>
+
+  <section class="abx" data-abx>
+    <div class="levels" role="tablist" aria-label="Challenge">
+      <button type="button" role="tab" class="level easy" data-level="easy" aria-selected="false">
+        <span class="level-head"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span><span class="level-name" data-t="easy">Easy</span></span>
+        <span class="level-what" data-t="easyWhat">Low-bitrate MP3</span>
+        <span class="level-best" data-best="easy"></span>
+      </button>
+      <button type="button" role="tab" class="level medium" data-level="medium" aria-selected="false">
+        <span class="level-head"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span><span class="level-name" data-t="medium">Medium</span></span>
+        <span class="level-what" data-t="mediumWhat">High-impedance amp</span>
+        <span class="level-best" data-best="medium"></span>
+      </button>
+      <button type="button" role="tab" class="level hard" data-level="hard" aria-selected="false">
+        <span class="level-head"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span><span class="level-name" data-t="hard">Hard</span></span>
+        <span class="level-what" data-t="hardWhat">Long, thin cable</span>
+        <span class="level-best" data-best="hard"></span>
+      </button>
+    </div>
+
+    <p class="status" data-status aria-live="polite" data-t="choose">Choose a challenge to start.</p>
+
+    <div class="player" data-player hidden>
+      <p class="question" data-question></p>
+      <div class="switches">
+        <button type="button" class="switch" data-play="A"><span>A</span><small data-t="original">original</small></button>
+        <button type="button" class="switch" data-play="B"><span>B</span><small data-t="processed">processed</small></button>
+        <button type="button" class="switch x" data-play="X"><span>X</span><small>?</small></button>
+      </div>
+      <div class="transport">
+        <button type="button" class="playstop" data-stop>Play</button>
+        <input type="range" min="0" max="1" step="0.001" value="0" data-position aria-label="Position">
+      </div>
+      <div class="votes">
+        <button type="button" class="vote" data-vote="A" data-t="voteA">X is A</button>
+        <button type="button" class="vote" data-vote="B" data-t="voteB">X is B</button>
+      </div>
+      <div class="trials" data-trials aria-hidden="true"></div>
+      <p class="progress" data-progress></p>
+      <p class="keys" data-t="keys">Keys: A / B / X switch · Q answers A · W answers B · Space plays or stops</p>
+    </div>
+
+    <div class="result" data-result hidden></div>
+  </section>
+
+  <section class="notes">
+    <h2 data-t="howTitle">How to listen</h2>
+    <ul>
+      <li data-t="how1">Use headphones or speakers you know well, in a quiet room. Set the volume once and leave it.</li>
+      <li data-t="how2">All versions are matched in loudness, so a louder version cannot give the answer away.</li>
+      <li data-t="how3">Switching keeps the playback position. Find a short passage where you think you hear a difference, move the slider there, and switch back and forth.</li>
+      <li data-t="how4">Guessing gets about half right. With 20 trials, 15 or more correct gives p &lt; 0.05: a result that is unlikely to be luck. Fewer correct answers do not prove the two sound identical, only that this test did not show a difference.</li>
+    </ul>
+
+    <h2 data-t="aboutTitle">About the sound</h2>
+    <p data-t="about">The music is Grieg's “In the Hall of the Mountain King”, a public-domain recording by the Musopen Symphony (Wikimedia Commons): 12 seconds of the full orchestra at 48 kHz. The processed versions were rendered with EffeTune's own effects. What each one is appears after the test.</p>
+
+    <h2 data-t="ownTitle">Try it with your own music</h2>
+    <p data-t-html="own">The same test is built into <a href="https://effetune.frieve.com/?utm_source=sound_toolbox&amp;utm_medium=referral&amp;utm_campaign=abx_challenge">EffeTune</a>, a free, open-source audio effect app. Build two pipelines with the AB toggle, then start an ABX or A/B Preference Test from the toggle's menu, with any music and any effects. See the <a href="https://effetune.frieve.com/docs/double-blind-test.html">Double Blind Test guide</a>.</p>
+  </section>
+
+  <footer class="foot">
+    <a href="../sound_abx_tester.html" data-t="tester">Frieve Sound ABX Tester: test your own files</a>
+    <span>·</span>
+    <a href="https://frieve-a.github.io/sound_toolbox/">Frieve's Sound Toolbox</a>
+  </footer>
+</main>
+<script src="challenge.js"></script>
+</body>
+</html>

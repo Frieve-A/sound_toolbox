@@ -72,6 +72,11 @@
     <input id="testCountInput" type="number" min="1" value="20">
     <input id="testCountRange" type="range" min="5" max="50" value="20">
 
+    <label class="checkbox-option" for="abxFixedAB">
+      <input id="abxFixedAB" type="checkbox" checked>
+      ABXテストでAとBを固定する（元のファイルを表示）
+    </label>
+
     <div class="test-buttons">
       <button id="startABPrefBtn">A/B比較テストを開始</button>
       <button id="startABXBtn">ABXテストを開始</button>
@@ -114,6 +119,10 @@
   </div>
 
   <div id="abx-screen" class="hidden">
+    <div id="abxSources" class="abx-sources hidden">
+      <p><strong>A（高音質）：</strong> <span id="abxSourceA"></span></p>
+      <p><strong>B（低音質）：</strong> <span id="abxSourceB"></span></p>
+    </div>
     <div class="test-buttons">
       <button id="abxListA">Aを再生</button>
       <button id="abxListB">Bを再生</button>

@@ -56,6 +56,7 @@ let context = {
   uriHigh: "",
   uriLow: "",
   testCount: 20,
+  abxFixedAB: true,
   testType: "",
   correctCount: 0,
   totalCount: 0,
@@ -114,6 +115,7 @@ const uriHighInput = document.getElementById("uriHigh");
 const uriLowInput = document.getElementById("uriLow");
 const testCountInput = document.getElementById("testCountInput");
 const testCountRange = document.getElementById("testCountRange");
+const abxFixedABInput = document.getElementById("abxFixedAB");
 const configError = document.getElementById("configError");
 const testResultArea = document.getElementById("testResultArea");
 const browseHighBtn = document.getElementById("browseHigh");
@@ -124,6 +126,8 @@ const fileLowInput = document.getElementById("fileLow");
 // Store blob URLs to revoke them when needed
 let blobUrlHigh = null;
 let blobUrlLow = null;
+let fileNameHigh = "";
+let fileNameLow = "";
 
 // File selection handlers
 browseHighBtn.addEventListener("click", () => {
@@ -162,8 +166,10 @@ function handleFileSelect(file, inputElement, type) {
   const blobUrl = URL.createObjectURL(file);
   if (type === "high") {
     blobUrlHigh = blobUrl;
+    fileNameHigh = file.name;
   } else {
     blobUrlLow = blobUrl;
+    fileNameLow = file.name;
   }
 
   inputElement.value = blobUrl;
@@ -236,6 +242,19 @@ testCountRange.addEventListener("input", () => {
   handleConfigChange();
 });
 
+abxFixedABInput.addEventListener("change", () => {
+  context.abxFixedAB = abxFixedABInput.checked;
+  // This setting only invalidates ABX results; preference results are unaffected.
+  if (context.testType === "ABX") {
+    context.name = "";
+    context.correctCount = 0;
+    context.totalCount = 0;
+    context.timeSpent = 0;
+    testResultArea.classList.add("hidden");
+  }
+  updateURI();
+});
+
 function handleConfigChange() {
   // localName does not go in context yet
   context.uriHigh = uriHighInput.value.trim();
@@ -272,6 +291,7 @@ function startTest(type) {
   context.uriHigh = h;
   context.uriLow = l;
   context.testCount = tc;
+  context.abxFixedAB = abxFixedABInput.checked;
   context.testType = type;
   context.correctCount = 0;
   context.totalCount = 0;
@@ -376,6 +396,9 @@ const abxListX = document.getElementById("abxListX");
 const abxVoteA = document.getElementById("abxVoteA");
 const abxVoteB = document.getElementById("abxVoteB");
 const abxCurrentlyListening = document.getElementById("abxCurrentlyListening");
+const abxSources = document.getElementById("abxSources");
+const abxSourceA = document.getElementById("abxSourceA");
+const abxSourceB = document.getElementById("abxSourceB");
 
 function updateABXUI() {
   if (context.totalCount >= context.testCount) {
@@ -388,8 +411,16 @@ function updateABXUI() {
   updateProgressBar("abxProgressBar", context.totalCount, context.testCount);
   abxCurrentlyListening.textContent = "";
   currentlyPlayingButtonId = null;
-  abxAIsHigh = Math.random() < 0.5;
+  abxAIsHigh = context.abxFixedAB || Math.random() < 0.5;
   abxXisA = Math.random() < 0.5;
+
+  abxSources.classList.toggle("hidden", !context.abxFixedAB);
+  abxSourceA.textContent = context.abxFixedAB
+    ? (context.uriHigh === blobUrlHigh ? fileNameHigh : context.uriHigh)
+    : "";
+  abxSourceB.textContent = context.abxFixedAB
+    ? (context.uriLow === blobUrlLow ? fileNameLow : context.uriLow)
+    : "";
   
   // Initialize audio context if needed to display sample rate
   if (!audioContext) {
@@ -564,6 +595,7 @@ function updateURI() {
     cC: context.correctCount,
     tC: context.totalCount,
     tc: context.testCount,
+    fAB: context.abxFixedAB,
     ts: context.timeSpent
   };
   const json = JSON.stringify(data);
@@ -598,12 +630,14 @@ function updateURI() {
     context.correctCount = obj.cC || 0;
     context.totalCount = obj.tC || 0;
     context.testCount = obj.tc || 20;
+    context.abxFixedAB = obj.fAB !== false;
     context.timeSpent = obj.ts || 0;
     context.restoredFromURI = true;
 
     uriHighInput.value = context.uriHigh;
     uriLowInput.value = context.uriLow;
     testCountInput.value = context.testCount;
+    abxFixedABInput.checked = context.abxFixedAB;
     testCountRange.value =
       context.testCount >= 5 && context.testCount <= 50
         ? context.testCount

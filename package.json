@@ -8,6 +8,7 @@
     "build": "astro build && node scripts/copy-static-assets.mjs",
     "preview": "astro preview --host 127.0.0.1",
     "check": "astro check",
+    "verify:abx": "node --test scripts/sound_abx_tester/*.test.mjs",
     "verify:vinyl": "node scripts/vinyl_explained/verify.mjs",
     "calibrate:vinyl": "node scripts/vinyl_explained/calibrate.mjs"
   },

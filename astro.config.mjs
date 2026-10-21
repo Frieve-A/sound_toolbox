@@ -41,11 +41,18 @@ function legacyStaticDevServer() {
           return;
         }
 
-        const url = new URL(request.url, 'http://localhost');
+        // Vite strips the base path from request.url before this handler runs.
+        const url = new URL(request.originalUrl ?? request.url, 'http://localhost');
         const relativeUrlPath = url.pathname.startsWith(basePath)
           ? url.pathname.slice(basePath.length)
           : url.pathname.replace(/^\//, '');
-        const relativePath = decodeURIComponent(relativeUrlPath);
+        let relativePath;
+        try {
+          relativePath = decodeURIComponent(relativeUrlPath);
+        } catch {
+          next();
+          return;
+        }
         const [topLevel] = relativePath.split('/');
         if (!topLevel || !legacyRoots.has(topLevel) || /^readme\.md$/i.test(path.basename(relativePath))) {
           next();
@@ -53,9 +60,24 @@ function legacyStaticDevServer() {
         }
 
         const filePath = path.resolve(root, relativePath);
+        if (!filePath.startsWith(`${root}${path.sep}`)) {
+          next();
+          return;
+        }
+        const isDirectory = existsSync(filePath) && statSync(filePath).isDirectory();
+        if (isDirectory && !url.pathname.endsWith('/')) {
+          // Match GitHub Pages: relative assets in index.html need the trailing slash.
+          response.statusCode = 301;
+          response.setHeader('Location', `${url.pathname}/${url.search}`);
+          response.end();
+          return;
+        }
+
         const htmlFilePath = path.extname(filePath) ? filePath : `${filePath}.html`;
-        const staticFilePath = existsSync(filePath) ? filePath : htmlFilePath;
-        if (!staticFilePath.startsWith(root) || !existsSync(staticFilePath)) {
+        const staticFilePath = isDirectory
+          ? path.join(filePath, 'index.html')
+          : existsSync(filePath) ? filePath : htmlFilePath;
+        if (!existsSync(staticFilePath)) {
           next();
           return;
         }
@@ -86,9 +108,12 @@ function legacyStaticDevServer() {
 
 export default defineConfig({
   site: 'https://frieve-a.github.io',
-  base: '/sound_toolbox',
+  // Keep BASE_URL slash-terminated for asset paths with trailingSlash: 'ignore'.
+  base: basePath,
   output: 'static',
-  trailingSlash: 'always',
+  // Let legacyStaticDevServer redirect real directories before serving their assets.
+  // Astro's 'always' mode rejects these requests before that middleware can run.
+  trailingSlash: 'ignore',
   build: {
     format: 'directory',
   },

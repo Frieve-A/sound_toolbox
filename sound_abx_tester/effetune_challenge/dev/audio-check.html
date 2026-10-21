@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ABX native Web Audio regression checks</title>
+<body>
+<h1>ABX native Web Audio regression checks</h1>
+<pre id="results">Running…</pre>
+<script type="module">
+// Development-only: copy-static-assets.mjs excludes every dev directory.
+// Render the production transport with native OfflineAudioContext automation.
+const source = await (await fetch('../challenge.js')).text();
+const output = document.getElementById('results');
+const report = [];
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+const near = (value, expected) => assert(Math.abs(value - expected) < 0.002, `${value} != ${expected}`);
+const noop = () => {};
+
+async function run(name, scenario, check, fallback = false) {
+  let offline;
+  const elements = new Map();
+  const root = {
+    querySelector(selector) {
+      if (!elements.has(selector)) elements.set(selector, {
+        value: '0', classList: { toggle: noop }, setAttribute: noop,
+        addEventListener: noop, replaceChildren: noop,
+      });
+      return elements.get(selector);
+    },
+    querySelectorAll: () => [], addEventListener: noop,
+  };
+  const fakeDocument = {
+    querySelector: () => root, querySelectorAll: () => [],
+    createElement: () => ({}), documentElement: {}, addEventListener: noop,
+  };
+  class AudioContext extends OfflineAudioContext {
+    constructor() { super(2, 4800, 48000); offline = this; }
+    // The transport's user-gesture resume is unnecessary before offline rendering.
+    resume() { return Promise.resolve(); }
+    decodeAudioData(data) {
+      const buffer = this.createBuffer(1, 576000, 48000);
+      buffer.getChannelData(0).fill(data.url.includes('original') ? 0.25 : 0.125);
+      return Promise.resolve(buffer);
+    }
+    createGain() {
+      const node = super.createGain();
+      if (fallback) node.gain.cancelAndHoldAtTime = undefined;
+      return node;
+    }
+  }
+  const transportSource = source.replace('  setLanguage(initialLanguage());',
+    '  expose({ choose, play, stop, seek: value => { els.position.value = String(value); } });');
+  let transport;
+  new Function('document', 'window', 'AudioContext', 'fetch', 'setInterval', 'expose', transportSource)(
+    fakeDocument, { addEventListener: noop }, AudioContext,
+    async url => ({ ok: true, arrayBuffer: async () => ({ url }) }), noop,
+    value => { transport = value; },
+  );
+  await transport.choose('easy');
+  transport.seek(0.5);
+  await scenario(transport, () => offline);
+  const rendered = await offline.startRendering();
+  const samples = rendered.getChannelData(0);
+  const sample = seconds => samples[Math.round(seconds * 48000)];
+  check(sample, samples);
+  report.push(`PASS ${name}`);
+  output.textContent = report.join('\n');
+}
+
+try {
+  await run('startup fade begins at the source start', async t => { await t.play('A'); }, sample => {
+    near(sample(0.019), 0); near(sample(0.02), 0);
+    near(sample(0.025), 0.125); near(sample(0.031), 0.25);
+  });
+  await run('switch before startup preserves the fade', async t => { await t.play('A'); await t.play('B'); }, sample => {
+    near(sample(0.02), 0); near(sample(0.025), 0.0625); near(sample(0.031), 0.125);
+  });
+  for (const fallback of [false, true]) {
+    await run(`mid-fade switch and stop are continuous${fallback ? ' (without cancelAndHoldAtTime)' : ''}`, async (t, getContext) => {
+      await t.play('A');
+      const ctx = getContext();
+      ctx.suspend(0.025).then(async () => {
+        await t.play('B');
+        await OfflineAudioContext.prototype.resume.call(ctx);
+      });
+      ctx.suspend(0.05).then(async () => {
+        t.stop();
+        await OfflineAudioContext.prototype.resume.call(ctx);
+      });
+    }, (sample, samples) => {
+      let step = 0, at = 0;
+      for (let i = 1; i < samples.length; i++) {
+        const delta = Math.abs(samples[i] - samples[i - 1]);
+        if (delta > step) { step = delta; at = i; }
+      }
+      assert(step < 0.002, `Discontinuous output: ${step} at ${at / 48000}s (${samples[at - 1]} -> ${samples[at]})`);
+      near(sample(0.04), 0.125); near(sample(0.08), 0);
+    }, fallback);
+  }
+  report.push('ALL 4 NATIVE AUDIO CHECKS PASSED');
+} catch (error) {
+  report.push(`FAIL ${error.stack}`);
+}
+output.textContent = report.join('\n');
+</script>
+</body>
+</html>

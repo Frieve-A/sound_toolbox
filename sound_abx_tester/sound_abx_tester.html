@@ -72,6 +72,11 @@
     <input id="testCountInput" type="number" min="1" value="20">
     <input id="testCountRange" type="range" min="5" max="50" value="20">
 
+    <label class="checkbox-option" for="abxFixedAB">
+      <input id="abxFixedAB" type="checkbox" checked>
+      Keep A and B fixed in ABX tests (show source files)
+    </label>
+
     <div class="test-buttons">
       <button id="startABPrefBtn">Start A/B Preference Test</button>
       <button id="startABXBtn">Start ABX Test</button>
@@ -114,6 +119,10 @@
   </div>
 
   <div id="abx-screen" class="hidden">
+    <div id="abxSources" class="abx-sources hidden">
+      <p><strong>A (high-quality):</strong> <span id="abxSourceA"></span></p>
+      <p><strong>B (low-quality):</strong> <span id="abxSourceB"></span></p>
+    </div>
     <div class="test-buttons">
       <button id="abxListA">Play A</button>
       <button id="abxListB">Play B</button>
