@@ -212,7 +212,9 @@ test('all levels finish at 20 trials, render the significance boundary and prese
       assert.equal(app.el('result').hidden, false);
       assert.match(app.el('result').innerHTML, new RegExp(`${correct} / 20 correct`));
       assert.equal(app.el('result').innerHTML.includes('Statistically significant:'), correct === 15);
-      const url = /href="([^"]+)"/.exec(app.el('result').innerHTML)[1];
+      const effetuneLink = /<a\b[^>]*\bclass="open-effetune"[^>]*\bhref="([^"]+)"/.exec(app.el('result').innerHTML);
+      assert.ok(effetuneLink, 'the results include the EffeTune test link');
+      const url = effetuneLink[1];
       const payload = JSON.parse(Buffer.from(new URL(url).searchParams.get('dbt'), 'base64').toString('utf8'));
       assert.equal(payload.fAB, true);
       assert.equal(payload.pB[0].nm, level === 'easy' ? 'MP3 Codec Simulator' : 'Earphone Cable Sim');

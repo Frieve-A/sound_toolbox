@@ -5,6 +5,11 @@
   const FADE_S = 0.01;
   const CLIPS = { easy: 'clips/easy.flac', medium: 'clips/medium.flac', hard: 'clips/hard.flac' };
   const SHORT_ORIGINAL = { easy: 'A', medium: 'B', hard: 'A' };
+  const SHORT_URL = {
+    easy: 'https://youtube.com/shorts/h-i8InelDAw',
+    medium: 'https://youtube.com/shorts/KHoxrEUlQDM',
+    hard: 'https://youtube.com/shorts/Lf2wkMTAPtw',
+  };
 
   // The same comparisons as EffeTune Double Blind Test pipelines (share-URL plugin states).
   // B carries the loudness-matching gain the clips were rendered with; A is a 0 dB Volume.
@@ -50,12 +55,12 @@
         medium: {
           question: 'Medium: is X the original or the high-impedance amplifier?',
           processing: 'Earphone Cable Sim, preset High Impedance Source: a 10 Ω output impedance driving 16 Ω earphones with an impedance peak at 120 Hz. The level changes by roughly -1 to +2 dB across the band.',
-          short: 'Original or a high-impedance amp?',
+          short: 'Original or a high-output-impedance amp?',
         },
         hard: {
           question: 'Hard: is X the original or the long, thin cable?',
           processing: 'Earphone Cable Sim, preset Long Thin Cable: 1.2 Ω cable resistance and 3 µH cable inductance with a 0.5 Ω amplifier output impedance, driving 16 Ω earphones. The level changes by less than 0.5 dB across the band.',
-          short: 'Original or a long, thin cable?',
+          short: 'Original or a long, thin earphone cable?',
         },
       },
       play: 'Play',
@@ -71,7 +76,7 @@
       notSignificant: 'Not significant: this test did not show that you could tell them apart. That does not prove they sound identical.',
       pSep: '. ',
       whatB: 'What B was:',
-      shortAnswer: (short, original) => `<strong>The Short “${short}”:</strong> the original was ${original}.`,
+      shortAnswer: (short, url, original) => `<strong>The Short “<a href="${url}" target="_blank" rel="noopener">${short}</a>”:</strong> the original was ${original}.`,
       again: 'Try again',
       openEffetune: 'Open this test in EffeTune',
       openNote: 'Opens the EffeTune web app with the same two pipelines, loudness matching included, ready to start an ABX test with any music you play. For the desktop app, copy this link and paste it into EffeTune (Ctrl+V, or Command+V on macOS).',
@@ -106,7 +111,7 @@
         easy: {
           question: 'やさしい：X は元の音？ それとも MP3？',
           processing: 'MP3 Codec Simulator、64 kbps、ジョイントステレオ（44.1 kHz の MPEG-1）。低いビットレートでは高音が削られ、圧縮による歪みが加わります。',
-          short: '元の音か64k MP3か',
+          short: '元の音か64 kbpsのMP3か',
         },
         medium: {
           question: 'ふつう：X は元の音？ それとも出力インピーダンスの高いアンプ？',
@@ -116,7 +121,7 @@
         hard: {
           question: 'むずかしい：X は元の音？ それとも細く長いケーブル？',
           processing: 'Earphone Cable Sim のプリセット Long Thin Cable：ケーブル抵抗 1.2 Ω、インダクタンス 3 µH、アンプの出力インピーダンス 0.5 Ω で 16 Ω のイヤホンを鳴らした音です。帯域全体での音量の変化は 0.5 dB 未満です。',
-          short: '元の音か細く長いケーブルか',
+          short: '元の音か細く長いイヤホンケーブルか',
         },
       },
       play: '再生',
@@ -132,7 +137,7 @@
       notSignificant: '有意ではありません。このテストでは聴き分けられたとは示せませんでした。ただし、2 つが同じ音だという証明にはなりません。',
       pSep: '。',
       whatB: 'B の正体：',
-      shortAnswer: (short, original) => `<strong>ショート動画「${short}」の答え：</strong>元の音は ${original} でした。`,
+      shortAnswer: (short, url, original) => `<strong>ショート動画「<a href="${url}" target="_blank" rel="noopener">${short}</a>」の答え：</strong>元の音は ${original} でした。`,
       again: 'もう一度',
       openEffetune: 'このテストを EffeTune で開く',
       openNote: '音量合わせも含めて同じ 2 つのパイプラインを EffeTune の Web アプリに読み込み、好きな曲で ABX テストを始められる状態で開きます。デスクトップ版では、このリンクをコピーして EffeTune に貼り付けてください（Ctrl+V、macOS は Command+V）。',
@@ -344,7 +349,7 @@
       <p class="score ${significant ? 'is-significant' : ''}">${t.score(correct)}</p>
       <p class="verdict">p ${p < 0.001 ? '&lt; 0.001' : `= ${p.toFixed(3)}`}${t.pSep}${significant ? t.significant : t.notSignificant}</p>
       <p><strong>${t.whatB}</strong> ${info.processing}</p>
-      <p>${t.shortAnswer(info.short, SHORT_ORIGINAL[level])}</p>
+      <p>${t.shortAnswer(info.short, SHORT_URL[level], SHORT_ORIGINAL[level])}</p>
       <button type="button" class="again" data-again>${t.again}</button>
       <div class="effetune-box">
         <a class="open-effetune" href="${effetuneUrl()}" target="_blank" rel="noopener">${t.openEffetune}</a>
